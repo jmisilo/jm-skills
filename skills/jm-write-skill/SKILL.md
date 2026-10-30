@@ -7,7 +7,7 @@ description: Use when the user wants to create, write, rewrite, review or debug 
 
 A skill is a folder an agent loads when its name and description match the task. It loads in three layers. The name and description sit in the agent's skill listing (unless only the user can start the skill). The SKILL.md body loads when the skill fires, once, and is not re-read on later turns. Other files load only when the body sends the agent to them.
 
-Skills fail in two ways: they never load, or they load and change nothing. Every step below targets one of the two. A good skill doesn't make the output identical. It makes the process identical, so the reasoning is the same every run while the output still fits the task.
+Skills fail in two ways: they never load, or they load and change nothing. Every step below targets one of the two. What a skill should fix is the route: the same checks, in the same order, on every run. The result still adapts to the task in front of it.
 
 `${CLAUDE_SKILL_DIR}` below is this skill's folder. If it appears unexpanded, use the folder this SKILL.md is in. Draft new skills in a scratch folder and install them in step 8.
 
@@ -32,9 +32,9 @@ If no real material exists, ask the user for one real example (a transcript, a d
 
 ## 2. Settle the decisions with the user
 
-Finding facts is your job and the decisions are the user's. Look up anything that lives in files, docs or tools yourself, and hand a large search to a fresh-context subagent. Never ask the user something you could look up.
+Separate what you can look up from what only the user can choose. Anything that lives in files, docs or tools you find yourself, handing a large search to a fresh-context subagent; the user only gets choices.
 
-Ask the decisions in rounds. Each round holds every question whose answer doesn't depend on another open question. Number them, give your recommended answer for each, and word each one so that "yes" accepts it. A question that depends on an open one waits for the next round.
+Put the choices to the user in batches. A batch holds every open choice that no other open choice depends on, and the dependent ones wait for a later batch. Number each choice, attach the answer you would pick (every choice gets one, including those you are unsure of), and phrase it as a proposal the user can accept with a plain "ok".
 
 Settle at least:
 - Which requests should load it, in the user's own words, and which near-misses must not.
@@ -44,23 +44,16 @@ Settle at least:
 - What it must never do without asking: irreversible, outward-facing or costly actions.
 - Which tools, scripts, files and services it may use.
 
-Stop when no branch rests on an assumption. Play the settled decisions back as a short list and wait for the user to confirm before writing. When no one can answer (a delegated or unattended run), take your recommended answers and list each question with its chosen answer in the report as unconfirmed.
+Stop when no choice is left open or resting on an assumption. Play the settled decisions back as a short list and wait for the user to confirm before writing. When no one can answer (a delegated or unattended run), take your recommended answers and list each question with its chosen answer in the report as unconfirmed.
 
 ## 3. Decide what belongs in the skill
 
-Walk this tree for every rule you collected:
+Take every rule you collected through these questions in order, and stop at the first yes:
 
-```
-Must it hold every single time, and can a program check it?
-├── Yes → lint rule, formatter, test or hook. A skill can fall out of context; tooling can't.
-└── No
-    ├── Does every task in this project need it?
-    │   └── Yes → one line in the always-loaded instructions file (CLAUDE.md, AGENTS.md)
-    └── No
-        ├── Is it needed again, for some tasks, and does it take procedure, knowledge or judgment?
-        │   └── Yes → the skill
-        └── No → leave it out; just do the task
-```
+1. Must it hold every single time, and can a program check it? → A lint rule, formatter, test or hook. A skill can fall out of context; tooling can't.
+2. Does every task in this project need it? → One line in the always-loaded instructions file (CLAUDE.md, AGENTS.md).
+3. Is it needed again, for some tasks, and does it take procedure, knowledge or judgment? → The skill.
+4. None of these → Leave it out and just do the task.
 
 Most topics split. Mechanical rules go to tooling and judgment goes to the skill, which names the tooling it relies on.
 
@@ -88,8 +81,8 @@ Decide who starts the skill:
 When the agent can start it, the name and description are all it sees while deciding. Write the description like this:
 - Lead with the most common trigger: "Use when ...". Name the situations and the words the user actually types, in every language they use.
 - Add one clause on what it covers, so the agent can tell it apart from neighbours. Add "Not for ..." when an adjacent task exists.
-- Never summarise the workflow. An agent that reads a summary of the steps follows the summary and skips the body.
-- Lean pushy. Agents under-load skills, and most of all for tasks they think they can do alone.
+- Keep the steps out of it. Given a step list in the description, agents tend to act on that list and never open the body.
+- Err toward loading. Agents load skills less often than they should, most of all for tasks they believe they can handle without help.
 - Aim for 150-500 characters; 1,024 is the hard limit. All descriptions share one listing budget, and when it overflows the least-used skills lose their descriptions and keep only their names.
 - Wrap the description in double quotes if it contains ": " or " #", or the YAML breaks or gets cut.
 
@@ -101,14 +94,14 @@ Read [descriptions.md](descriptions.md) when writing or repairing a description,
 
 Order the body as process, rules, gotchas, then pointers to reference files. Put what matters most near the top: after a long session is compacted, Claude Code keeps only the first 5,000 tokens of a loaded skill.
 
-Write every line so that it changes what the agent does:
-- **A process with an end.** Give steps the agent walks the same way every run, ending in a condition it can check: "no FAIL left", "every question answered", "the user confirmed". An end like "until it looks good" invites stopping early.
-- **Numbers over adjectives.** For example, "short" becomes "under 300 ms" and "concise" becomes "2-3 sentences". Every adjective left in hands the choice back to the model's defaults.
-- **A reason for every rule that isn't self-evident**, in one clause. A rule with its reason generalises to cases you didn't write down. A bare rule gets applied where it doesn't fit.
+Hold every line to one test: the agent behaves differently because of it.
+- **A finish line.** Lay out steps the agent repeats identically each time, and close on something it can verify: "no FAIL left", "every question answered", "the user confirmed". A finish like "until it looks good" lets the agent stop whenever it likes.
+- **Measurable limits.** Swap qualities for figures, as in "fast" becoming "p95 under 200 ms" or "brief" becoming "three sentences at most". An adjective left in is a choice the model makes from habit.
+- **The purpose, in one clause,** for any rule a newcomer might question. Knowing what a rule is for lets the agent handle situations the skill never mentions; without it, the agent applies the rule mechanically, misfits included.
 - **Wording for the whole task.** The body is read once, so write "run the tests after every edit", not "run the tests".
-- **Freedom matched to fragility.** Fragile, order-dependent steps get exact commands and "run exactly this". Judgment work gets principles and the reasons behind them.
-- **Say what to do.** Phrase rules as the behaviour you want, because naming a forbidden pattern can prime it. Keep prohibitions for hard guardrails, and give each one its replacement, such as a "Rule | Instead" row.
-- **Strict words.** "Always", "never" and numbers anchor behaviour, while "try to", "where appropriate" and "reasonable" leave the agent on its defaults. Keep capitals for the one or two rules where a miss is costly.
+- **Tight where it breaks, loose where it's judgment.** Fragile, order-dependent steps get exact commands and "run exactly this". Judgment work gets principles and what they protect.
+- **Describe the behaviour you want.** Spelling out an unwanted pattern puts it in front of the model. Keep bans for hard limits, and give each one its replacement, such as a "Rule | Instead" row.
+- **Firm wording.** Absolute terms and exact figures leave no room to drift. Softeners such as "ideally", "if needed" or "when possible" hand the decision back to the model. Save capitals for the one or two rules where a miss is costly.
 - **Cut what the model already knows.** For each line, ask whether the agent would get this wrong without it. If not, delete it.
 - **Fixed vocabulary.** Define each domain term once and use exactly that word every time, because the agent reads synonyms as different things.
 - **Gotchas.** Keep a short section of facts that contradict what a capable newcomer would assume. "The Linear issue's open time is when someone noticed, not when the incident began" is a gotcha; "be careful with times" is not. Grow it every time you correct the agent.
@@ -129,10 +122,10 @@ Rules for the files:
 
 ## 7. Test it
 
-A skill is a hypothesis until you've run it. Read [testing.md](testing.md) before running the steps below.
+Until a skill has run on real tasks, whether it works is a guess. Read [testing.md](testing.md) before running the steps below.
 
 1. **Lint.** Run `node ${CLAUDE_SKILL_DIR}/scripts/lint-skill.mjs <skill-folder>`. Fix every FAIL. Treat each WARN as wrong unless you can defend it in one sentence.
-2. **Behaviour.** Rerun the step 1 tasks on fresh subagents, once with the skill and once without, on the model the user works with. Compare against the failures you recorded. Read the transcripts, not just the results, to see where the agent hesitates, skips a step or reads files it didn't need.
+2. **Behaviour.** Rerun the step 1 tasks on fresh subagents, once with the skill and once without, on the model the user works with. Compare against the failures you recorded. Look at the steps the agent took as well as its output: where it hesitated, what it skipped, which files it opened for nothing.
 3. **Triggering**, for skills the agent can start. Write 16 to 20 realistic requests, half that should load the skill and half near-misses, and run `node ${CLAUDE_SKILL_DIR}/scripts/trigger-eval.mjs`. It runs requests x runs headless sessions at up to $0.15 each. State that count and cost, and wait for the user's go-ahead.
 
 The skill is done when:
@@ -161,7 +154,7 @@ Report to the user: the path, the shape, who starts it, the test results with nu
 | Never loads for simple requests | Agents skip skills for tasks they believe are trivial | Expected. Test with substantive requests, or make it user-started |
 | Loads for the wrong requests | Name or description too broad | Add "Not for ...", narrow the name and the situations, or make it user-started |
 | Loads, then gets ignored | The key rule is buried, hedged, or contradicted by a summary in the description | Move it to the top, make it strict, delete the summary |
-| Applies a rule where it doesn't fit | The rule has no reason | Add the reason |
+| Applies a rule in the wrong places | Nothing says what the rule is for | Add its purpose in one clause |
 | Output is generic | Written from general knowledge | Rebuild from step 1 material: real examples, numbers, gotchas |
 | Followed at first, forgotten later | A rule that must hold every time, or wording that only covers the first step | Move it to a hook or lint rule (step 3), or word it for the whole task |
 | Reads every reference file up front | Pointers without conditions | Give each pointer its "Read X when Y" |

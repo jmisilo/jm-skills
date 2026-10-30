@@ -34,3 +34,10 @@ Trigger test of this skill: 14 requests x 2 runs. No near-miss loaded it. Three 
 - Found that `-trial` copies change triggering (one request went 3/3 to 0/3), so testing.md now says to compare descriptions only through `--description` on both arms.
 - Added `--hide` to trigger-eval. With `emil-writing-skills` hidden, "review the skill I wrote" went from 0/3 to 3/3: that miss is competition from a near-duplicate skill, not the description.
 - Final run (15 requests x 3): near-misses 7/7 stay out, including CLAUDE.md, system prompt, blog post about skills and runbook docs. Should-load 5/8, including the Polish request 3/3.
+
+## 2026-10-30 (original wording)
+
+- The user worried the skill read too close to Emil Kowalski's skill-writing guide. A 4-word-sequence comparison found 17 shared phrases with it (one near-verbatim sentence), 12 with Matt Pocock's grilling skill and 4 with obra's superpowers writing-skills.
+- Rewrote every flagged passage in original wording: the intro, step 2, the step 3 tree (now ordered questions), two step 5 bullets, the step 6 bullets, the step 7 opener, a Diagnose row, the interview, artifact and combining sections of shapes.md, three testing.md lines and one lint message. Steps, rules, tables and scripts are unchanged.
+- After: 2 shared 4-word phrases with Emil's guide (both generic), and only generic ones with the others. Added README.md with credits for the ideas, outside what agents load.
+- Blind A/B (same brief, Sonnet, old vs new text, judged by a third agent that didn't know which was which): new 4-4.5 vs old 3.5-4 per criterion, judged "modestly better, ~65% confidence, mostly run-to-run variation". Same steps followed in both. The new run left 2 decisions without a proposed answer, so step 2 now says every choice gets one.

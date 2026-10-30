@@ -18,7 +18,7 @@ const KNOWN_FIELDS = new Set([
 const HEDGES = [
   "where appropriate", "as appropriate", "if appropriate", "appropriately",
   "as needed", "if needed", "if necessary", "when necessary", "where necessary",
-  "reasonable", "reasonably", "try to", "consider", "tasteful", "properly", "ideally",
+  "reasonable", "reasonably", "try to", "consider", "properly", "ideally",
   "if possible", "when possible", "where possible", "as much as possible",
   "etc.", "and so on", "best practices", "robust", "seamless", "nice", "good enough",
 ];
@@ -184,7 +184,7 @@ function checkBody(bodyLines, startLine) {
       if (pattern.test(plain)) {
         hedgeCount++;
         if (hedgeCount <= 12) {
-          add("WARN", "SKILL.md", n, `vague "${hedge}" gives the agent nothing to act on; use a number, a named value, always or never`);
+          add("WARN", "SKILL.md", n, `vague "${hedge}" leaves the call to the model; replace it with a figure, a named value or an absolute`);
         }
       }
     }

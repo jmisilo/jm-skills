@@ -39,7 +39,7 @@ On a tight budget, run 1 task in each arm instead of 3, and report the other tas
 Compare:
 - Did each failure recorded in step 1 disappear in the with-skill run?
 - Did the with-skill run do anything worse than the baseline? Skills can make some tasks worse; that's a reason to narrow the skill.
-- Read the transcript: did the agent skip a step, read files it didn't need, or hesitate at a vague line? Each is a line to fix.
+- Go through what the agent actually did, step by step: a skipped step, a file read for nothing, or a pause at a vague line each points to a line to fix.
 - If both runs pass, the skill teaches nothing for that task. Cut what was meant to teach it.
 
 For subjective output (design, writing, tone), show the user both outputs side by side without saying which is which. Assertions can't judge taste.
@@ -59,8 +59,8 @@ Write the requests file:
 ]
 ```
 
-- 8-10 should-load requests: different phrasings of the real situations, formal and casual, with typos, file paths and backstory. Include requests that never name the topic directly but clearly need the skill.
-- 8-10 near-misses: requests that share keywords or concepts but need something else. "Write a fibonacci function" is a useless near-miss for a database skill; "speed up this slow query" is a good one for a migrations skill.
+- 8-10 should-load requests: the real situations, each worded the way a different user would put it (terse, chatty, misspelled), with file paths and backstory. Include requests that never name the topic but clearly need the skill.
+- 8-10 near-misses: requests that use the skill's vocabulary but want a different job done. For a migrations skill, "why is this query slow" is a useful near-miss; "convert this image to webp" proves nothing.
 - Every request must be substantive. One-step requests load no skill and test nothing.
 - Mark about 40% of each kind `"set": "test"` and never tune the description against those.
 

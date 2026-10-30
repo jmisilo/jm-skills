@@ -19,44 +19,43 @@ Skeletons for the eight shapes that strong skills take. Copy the skeleton for yo
 For aligning on a plan, design or decision before anything is built. The model's own knowledge supplies the questions; the skill supplies the discipline.
 
 ```markdown
-Interview the user until you reach a shared understanding of [the thing].
-Map it as a tree of decisions: each decision branches into the ones that depend on it.
+Interview the user until you both describe [the thing] the same way.
+Track open choices as a dependency map: a choice is askable once everything it depends on is settled.
 
-Work in rounds. Each round asks every decision whose prerequisites are settled.
-Number the questions, give your recommended answer for each, and word each
-so "yes" accepts the recommendation. Then wait.
+Ask in batches: every choice that is askable now goes into the current batch.
+Number them, attach the answer you would pick, and phrase each as a proposal
+the user can accept with "ok". Then wait.
 
-Finding facts is your job: look up anything in [files, tools, docs] yourself
-(hand large searches to a subagent) and ask only the decisions the findings leave open.
-Decisions are the user's: put each one to them.
+Look up facts in [files, tools, docs] yourself (large searches go to a subagent).
+Only the choices the findings leave open go to the user.
 
-Done when every branch is visited and nothing is silently assumed.
-Don't act until the user confirms the shared understanding.
+Done when no choice is open and nothing rests on an unstated assumption.
+Act only after the user confirms the summary.
 ```
 
 Moves that make it work:
-- A recommended answer on every question, so the user can approve cheaply and still override.
-- A strict split between facts (look them up) and decisions (ask).
-- Rounds rather than one question at a time, unless the user wants one at a time. Rounds cut the number of exchanges.
-- A completion criterion that is both checkable and exhaustive: "every branch visited".
-- No artifact unless the user asks for one; the product is the shared understanding.
+- A proposed answer on every choice, so approving is cheap and overriding stays easy.
+- Facts are looked up, never asked; only choices reach the user.
+- Batches rather than one question at a time, unless the user wants singles. Batches mean fewer back-and-forths.
+- An end condition you can check and that covers everything: "no choice open".
+- Nothing written unless the user asks; the outcome is agreement.
 
-Pitfalls: a cap on the number of questions (some plans need 3, some 50); answering decisions on the user's behalf; asking for facts the agent could read.
+Pitfalls: a fixed question budget (the right count depends on the plan); choosing on the user's behalf; asking for facts the agent could read.
 
 ## Artifact writer
 
 For one document the user keeps asking for: a handoff, a brief, release notes, a postmortem. Keep it short; the model knows how to write a document, so the skill holds only the constraints it keeps getting wrong.
 
 ```markdown
-Write [the artifact] so that [the reader] can [what they do with it].
-Save it to [exact location, with the fallback order].
+Write [the artifact] for [the reader], who will use it to [next action].
+Save it at [exact location; the fallback if that is missing].
 
-Include a [required section] that [why it matters to the reader].
-Reference existing [specs, issues, commits] by path or URL instead of copying them.
-Redact [secrets, personal data].
-If the user passed arguments, treat them as [what they mean] and tailor the document.
+It must contain [required section], because [what the reader does with it].
+Link to [specs, issues, commits] rather than repeating their content.
+Leave out [secrets, personal data].
+Arguments, if given, describe [what they mean]; shape the document around them.
 
-Tell the user the absolute path when done.
+Finish by giving the user the file's absolute path.
 ```
 
 Moves that make it work:
@@ -234,8 +233,8 @@ Any shape can add a gate (stop and ask before an action) and a checker script (v
 
 A skill can combine two shapes with one section for each, such as a runbook that ends in an interview.
 
-When several skills share one method, split them into two tiers:
-- **Entry points** are short skills only the user starts. They orchestrate.
-- **Disciplines** are skills the agent can start, holding the reusable method.
+When several skills share one method, split them into two kinds:
+- **Commands** are short skills only the user starts. They coordinate.
+- **Methods** are skills the agent can start. They hold the reusable know-how.
 
-The two entry points then share one discipline instead of copying it. An entry point loads a discipline with an explicit instruction ("Load `[name]` with the Skill tool"; say what to do if it isn't installed), because a skill named only in prose doesn't reliably load. Keep entry points from calling each other: each is a deliberate user choice, and chaining them hides that choice.
+Commands that need the same method then share it instead of copying it. A command loads a method with an explicit instruction ("Load `[name]` with the Skill tool"; say what to do if it isn't installed), because a skill named only in prose doesn't reliably load. Commands don't call other commands: each is a deliberate user choice, and chaining them hides that choice.
