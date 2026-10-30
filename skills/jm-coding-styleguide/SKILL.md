@@ -1,6 +1,6 @@
 ---
 name: jm-coding-styleguide
-description: "Use when writing, reviewing or refactoring TypeScript, React or Next.js code in JM's projects: new features, server actions, API routes, DB or third-party integrations, monorepo packages, tests, lint setup. Covers JM's control-flow style, withX wrappers (withAuth, withProtectedAction), static service classes and pnpm/turbo layout. An existing repo convention or the user's request wins."
+description: "Use when writing, reviewing or refactoring TypeScript, React or Next.js code in JM's projects: features, server actions, API routes, DB or third-party integrations, new packages or apps in a pnpm/turbo monorepo, tests, lint setup. Covers JM's control-flow style, withX wrappers (withAuth, withProtectedAction), static service classes and monorepo layout. An existing repo convention or the user's request wins. Not for Python, shell or other languages."
 ---
 
 # JM coding style
