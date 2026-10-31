@@ -49,3 +49,7 @@ Trigger test of this skill: 14 requests x 2 runs. No near-miss loaded it. Three 
 - Step 2: "the user only gets choices" read as limiting the user; now "what remains goes to the user as choices".
 - Step 6: dropped the opener "Hold every line to one test", which repeated the "Cut what the model already knows" bullet. The lead-in is now "Rules for the body:", parallel to "Rules for the files:".
 - Credit stays in README.md (agents don't load it), not in SKILL.md, so it costs no context.
+
+## 2026-10-31 (checker false positives)
+
+- Step 6 script rule now says to run each checker on one compliant and one breaking output. In the second blind A/B round, neither writer tested its checker against output written from its own skill, and one checker failed a compliant email that began "Action needed:". A checker that rejects compliant output trains the agent to ignore it.

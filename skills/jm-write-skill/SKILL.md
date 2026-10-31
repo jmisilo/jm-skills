@@ -114,7 +114,7 @@ Rules for the files:
 - Keep SKILL.md under 500 lines.
 - Keep reference files one level deep from SKILL.md. Give each pointer the condition for reading it, such as "Read `errors.md` when the API returns a non-200", not "see errors.md". Without a condition, the agent reads everything up front or nothing at all.
 - Start any reference file over 100 lines with a contents list.
-- Put deterministic or fragile work in scripts: parsing, validation, data collection, anything that must be exact. Write them in a language already on the user's machine with no dependencies to install, and say whether to run or read each one. Call each through its interpreter (`node ${CLAUDE_SKILL_DIR}/scripts/[name].mjs`). Exit non-zero on failure and print errors that say how to fix the problem.
+- Put deterministic or fragile work in scripts: parsing, validation, data collection, anything that must be exact. Write them in a language already on the user's machine with no dependencies to install, and say whether to run or read each one. Call each through its interpreter (`node ${CLAUDE_SKILL_DIR}/scripts/[name].mjs`). Exit non-zero on failure and print errors that say how to fix the problem. Run each checker on one output that follows the skill and one that breaks it; a checker that rejects compliant output teaches the agent to ignore it.
 - List what the skill needs installed (CLIs, packages, logins) and what to do when it's missing.
 - Grant only the commands the skill runs, such as `allowed-tools: Bash(node *)`, never a bare `Bash`.
 - Never copy data that changes, such as prices, versions or API lists. Point to the live source, or to a command that prints it.
