@@ -13,18 +13,13 @@ Agent skills for Claude Code, Codex and other agents that read the Agent Skills 
 
 ## Install
 
-From a local clone:
-
 ```bash
-npx skills add ~/Developer/side-projects/jm-skills --list          # what's inside
-npx skills add ~/Developer/side-projects/jm-skills -g -a claude-code --skill '*'
+npx skills add jmisilo/jm-skills --list                              # what's inside
+npx skills add jmisilo/jm-skills -g -a claude-code --skill '*'       # all, globally
+npx skills add jmisilo/jm-skills --skill jm-write-skill               # one skill
 ```
 
-Once the repo is on GitHub:
-
-```bash
-npx skills add jmisilo/jm-skills --skill jm-write-skill
-```
+From a local clone, pass its path instead of `jmisilo/jm-skills`.
 
 ## Writing or changing a skill
 
