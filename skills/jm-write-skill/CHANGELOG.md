@@ -41,3 +41,11 @@ Trigger test of this skill: 14 requests x 2 runs. No near-miss loaded it. Three 
 - Rewrote every flagged passage in original wording: the intro, step 2, the step 3 tree (now ordered questions), two step 5 bullets, the step 6 bullets, the step 7 opener, a Diagnose row, the interview, artifact and combining sections of shapes.md, three testing.md lines and one lint message. Steps, rules, tables and scripts are unchanged.
 - After: 2 shared 4-word phrases with Emil's guide (both generic), and only generic ones with the others. Added README.md with credits for the ideas, outside what agents load.
 - Blind A/B (same brief, Sonnet, old vs new text, judged by a third agent that didn't know which was which): new 4-4.5 vs old 3.5-4 per criterion, judged "modestly better, ~65% confidence, mostly run-to-run variation". Same steps followed in both. The new run left 2 decisions without a proposed answer, so step 2 now says every choice gets one.
+
+## 2026-10-31 (review fixes)
+
+- Step 2: the batch rule was inverted ("every open choice that no other open choice depends on" picks the leaves, so dependent questions came first). Now: "every open choice that doesn't depend on another open choice". Matches shapes.md.
+- Intro: "should fix is the route" read as "repair"; now "pin down".
+- Step 2: "the user only gets choices" read as limiting the user; now "what remains goes to the user as choices".
+- Step 6: dropped the opener "Hold every line to one test", which repeated the "Cut what the model already knows" bullet. The lead-in is now "Rules for the body:", parallel to "Rules for the files:".
+- Credit stays in README.md (agents don't load it), not in SKILL.md, so it costs no context.

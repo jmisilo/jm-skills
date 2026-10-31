@@ -7,7 +7,7 @@ description: Use when the user wants to create, write, rewrite, review or debug 
 
 A skill is a folder an agent loads when its name and description match the task. It loads in three layers. The name and description sit in the agent's skill listing (unless only the user can start the skill). The SKILL.md body loads when the skill fires, once, and is not re-read on later turns. Other files load only when the body sends the agent to them.
 
-Skills fail in two ways: they never load, or they load and change nothing. Every step below targets one of the two. What a skill should fix is the route: the same checks, in the same order, on every run. The result still adapts to the task in front of it.
+Skills fail in two ways: they never load, or they load and change nothing. Every step below targets one of the two. What a skill should pin down is the route: the same checks, in the same order, on every run. The result still adapts to the task in front of it.
 
 `${CLAUDE_SKILL_DIR}` below is this skill's folder. If it appears unexpanded, use the folder this SKILL.md is in. Draft new skills in a scratch folder and install them in step 8.
 
@@ -32,9 +32,9 @@ If no real material exists, ask the user for one real example (a transcript, a d
 
 ## 2. Settle the decisions with the user
 
-Separate what you can look up from what only the user can choose. Anything that lives in files, docs or tools you find yourself, handing a large search to a fresh-context subagent; the user only gets choices.
+Separate what you can look up from what only the user can choose. Anything that lives in files, docs or tools you find yourself, handing a large search to a fresh-context subagent; what remains goes to the user as choices.
 
-Put the choices to the user in batches. A batch holds every open choice that no other open choice depends on, and the dependent ones wait for a later batch. Number each choice, attach the answer you would pick (every choice gets one, including those you are unsure of), and phrase it as a proposal the user can accept with a plain "ok".
+Put the choices to the user in batches. A batch holds every open choice that doesn't depend on another open choice; dependent ones wait for a later batch. Number each choice, attach the answer you would pick (every choice gets one, including those you are unsure of), and phrase it as a proposal the user can accept with a plain "ok".
 
 Settle at least:
 - Which requests should load it, in the user's own words, and which near-misses must not.
@@ -94,7 +94,7 @@ Read [descriptions.md](descriptions.md) when writing or repairing a description,
 
 Order the body as process, rules, gotchas, then pointers to reference files. Put what matters most near the top: after a long session is compacted, Claude Code keeps only the first 5,000 tokens of a loaded skill.
 
-Hold every line to one test: the agent behaves differently because of it.
+Rules for the body:
 - **A finish line.** Lay out steps the agent repeats identically each time, and close on something it can verify: "no FAIL left", "every question answered", "the user confirmed". A finish like "until it looks good" lets the agent stop whenever it likes.
 - **Measurable limits.** Swap qualities for figures, as in "fast" becoming "p95 under 200 ms" or "brief" becoming "three sentences at most". An adjective left in is a choice the model makes from habit.
 - **The purpose, in one clause,** for any rule a newcomer might question. Knowing what a rule is for lets the agent handle situations the skill never mentions; without it, the agent applies the rule mechanically, misfits included.
