@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the copy button swaps its icon</title>
+<!-- accent: #1f6feb on #fafafa = 4.44:1, under 4.5. Same OKLCH hue (259.7) and chroma (0.202),
+     lightness 0.569 -> 0.555 gives #1a6be6. Relative luminance 0.1645 vs paper 0.9560:
+     (0.9560 + 0.05) / (0.1645 + 0.05) = 4.69:1, passes AA for normal text. -->
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #171717;
+  --ink-2: #525252;
+  --muted: #8f8f8f;
+  --faint: #bdbdbd;
+  --rule: #ebebeb;
+  --well: #efefef;
+  --accent: #1a6be6;
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px;
+  --fig-width: 880px;
+}
+
+/* == base == */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--paper); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font: 15px/1.6 var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: var(--accent-soft); }
+p { margin: 0 0 16px; text-wrap: pretty; }
+a { color: var(--ink); text-decoration: underline 1px var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink-2); }
+b, strong { font-weight: 600; }
+
+/* == page: prose in --measure, figures break out to --fig-width == */
+.page { max-width: calc(var(--fig-width) + 40px); margin: 0 auto; padding: 72px 20px 120px; }
+.page > * > :not(.fig) { max-width: var(--measure); margin-inline: auto; }
+.page > section { margin-top: 64px; }
+.page > [data-part="problem"] { margin-top: 40px; }
+
+/* == prompt header == */
+.prompt {
+  margin-bottom: 0;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  font: 13px/1.6 var(--mono);
+  color: var(--ink-2);
+}
+.prompt .caret { color: var(--muted); }
+.prompt b { color: var(--ink); }
+.meta {
+  margin-top: 4px;
+  padding: 0 0 16px 15.6px; /* 2ch of the 13px prompt */
+  border-bottom: 1px solid var(--rule);
+  font: 11px/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+/* == headings == */
+h1 { margin: 0 0 16px; font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
+.sec { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.sec::after { content: ""; order: 1; flex: 1; border-top: 1px solid var(--rule); }
+.sec .idx { order: 2; }
+.idx, .label {
+  font: 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* == inline == */
+code {
+  padding: .05em .35em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: .9em;
+}
+dfn { font-style: normal; font-weight: 600; }
+mark { background: none; color: inherit; }
+.subj, [data-subj], .val { color: var(--accent); }
+.val { font-variant-numeric: tabular-nums; }
+.inferred { text-decoration: underline dotted 1px var(--muted); text-underline-offset: 4px; }
+.fault { color: var(--fault); }
+sup.ref { font: 10px/0 var(--mono); vertical-align: super; margin-left: 1px; }
+sup.ref a { padding: 0 1px; color: var(--ink-2); text-decoration: none; }
+sup.ref a:hover { color: var(--ink); }
+.lead { font-weight: 600; }
+
+/* == primer: term | definition rows == */
+dl.terms {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  margin-block: 0;
+  border-bottom: 1px solid var(--rule);
+}
+dl.terms dt, dl.terms dd { padding: 12px 0; border-top: 1px solid var(--rule); }
+dl.terms dt {
+  padding-right: 24px;
+  font: 11px/24px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+}
+dl.terms dd { margin: 0; color: var(--ink); }
+
+/* == numbered steps: faint numerals, bold lead-in, grey rest == */
+ol.steps { margin: 0 0 24px; padding: 0; list-style: none; counter-reset: step; border-bottom: 1px solid var(--rule); }
+ol.steps > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  counter-increment: step;
+}
+ol.steps > li::before {
+  content: counter(step, decimal-leading-zero);
+  font: 12px/24px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+ol.steps > li > b:first-child { color: var(--ink); }
+
+/* == sources == */
+ol.sources { margin: 0; padding: 0; list-style: none; counter-reset: src; font-size: 14px; }
+ol.sources > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 8px 0;
+  color: var(--ink-2);
+  counter-increment: src;
+}
+ol.sources > li::before {
+  content: counter(src, decimal-leading-zero);
+  font: 12px/22px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+ol.sources .label { display: block; margin-top: 4px; }
+ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink); }
+.key { margin-top: 24px; }
+
+@media (max-width: 480px) {
+  .page { padding-top: 40px; }
+  dl.terms { grid-template-columns: 1fr; }
+  dl.terms dt { padding-bottom: 4px; }
+  dl.terms dd { padding-top: 0; border-top: 0; }
+  ol.steps > li, ol.sources > li { grid-template-columns: 28px 1fr; }
+}
+
+/* == figures == */
+/* Figures sit on the paper: no card, border, fill or shadow. Default width is --measure; .wide breaks out to --fig-width. */
+.fig { max-width: var(--measure); margin: 40px auto; padding: 0; border: 0; background: none; container-type: inline-size; }
+.fig.wide { max-width: var(--fig-width); }
+.fig-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.fig-tag, .fig-hint, .fig-src, .fig-name {
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.fig-name { margin-right: auto; color: var(--ink-2); }
+.fig-hint { text-align: right; }
+.fig figcaption {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--faint);
+  font: 13px/1.5 var(--sans);
+  color: var(--ink-2);
+}
+.fig-src { display: block; margin-top: 4px; }
+
+/* svg: drawn at real size (width = viewBox width), never scaled up, centred; 1px strokes at any scale */
+.fig svg { overflow: visible; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig > svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+.fig svg text { font: 12px var(--mono); font-variant-numeric: tabular-nums; fill: var(--ink-2); stroke: none; }
+.fig svg text.lbl { font-size: 11px; letter-spacing: .06em; }
+.fig svg text.mut { fill: var(--muted); }
+.fig svg .ln { stroke: var(--ink-2); fill: none; }
+.fig svg .ln-faint { stroke: var(--faint); fill: none; }
+.fig svg .leader { stroke: var(--muted); fill: none; }
+.fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
+.fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .dash { stroke: var(--muted); stroke-dasharray: 2 4; fill: none; }
+.fig svg .solid { fill: var(--ink-2); stroke: none; }
+.fig svg .ref-line { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .series { stroke: var(--ink-2); fill: none; }
+.fig svg .after { stroke: var(--muted); fill: none; }
+.fig svg .subj { stroke: var(--accent); fill: none; }
+.fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
+.fig svg .solid.subj { fill: var(--accent); stroke: none; }
+.fig svg text.subj { fill: var(--accent); stroke: none; }
+
+/* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
+.ascii { container-type: inline-size; font-size: 14px; }
+.ascii pre {
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)));
+  line-height: 1.2;
+  color: var(--ink-2);
+  user-select: none;
+}
+
+/* timeline: label column + track, positions as % */
+.tl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 14px;
+  align-items: center;
+  font: 12px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.tl-axis, .tl-bracket, .tl-track { position: relative; }
+.tl-axis { height: 14px; }
+.tl-axis span { position: absolute; left: var(--at); transform: translateX(-50%); white-space: nowrap; }
+.tl-axis span:first-child { transform: none; }
+.tl-axis span:last-child { transform: translateX(-100%); }
+.tl-bracket { height: 8px; }
+.tl-seg { position: absolute; left: var(--a); width: calc(var(--b) - var(--a)); bottom: 0; height: 8px; border-bottom: 1px solid var(--faint); }
+.tl-tick { position: absolute; left: var(--at); bottom: 0; width: 1px; height: 8px; background: var(--faint); }
+.tl-tick:last-child { margin-left: -1px; }
+.tl-track { height: 8px; background: var(--well); }
+.tl-bar { position: absolute; top: 0; bottom: 0; left: var(--a); width: calc(var(--b) - var(--a)); background: var(--ink-2); }
+.tl-track[data-subj] .tl-bar { background: var(--accent); }
+
+/* stack: one hairline block per layer, top of the stack first */
+.stack { display: grid; gap: 4px; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.stack > div { display: grid; grid-template-columns: 9ch 1fr auto; gap: 16px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--faint); }
+.stack > div > :first-child { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.stack > div > :last-child { text-align: right; }
+.stack > [data-subj] { border-color: var(--accent); }
+
+/* units: one square per unit, key underneath */
+.units { display: grid; gap: 12px; justify-items: center; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.units-grid { display: grid; grid-template-columns: repeat(var(--per-row, 20), 12px); gap: 4px; }
+.units-grid i, .units-key i { display: block; width: 12px; height: 12px; background: var(--well); }
+.units-grid .on, .units-key .on { background: var(--ink-2); }
+.units-grid .subj, .units-key .subj { background: var(--accent); }
+.units-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.units-key span { display: inline-flex; align-items: center; gap: 8px; }
+.units-key i { width: 8px; height: 8px; }
+
+/* table: semantic table, hairline rows, --well header row */
+.fig table { width: 100%; border-collapse: collapse; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.fig th, .fig td { padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.fig th { font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; background: var(--well); }
+.fig th:first-child, .fig td:first-child { padding-left: 8px; }
+.fig .num { text-align: right; }
+
+/* panel: tag line, code with live values, small schematic, chart, footer with formula and readouts */
+.panel { display: grid; grid-template-columns: 1fr auto; gap: 24px 32px; align-items: start; }
+.panel-code { font: 13px/1.85 var(--mono); color: var(--ink-2); counter-reset: ln; }
+.panel-code > div { white-space: pre; counter-increment: ln; }
+.panel-code > div::before { content: counter(ln); display: inline-block; width: 3ch; color: var(--faint); }
+.panel-code b { font-weight: 600; color: var(--ink); }
+.panel-code .c { color: var(--muted); }
+.panel-code [data-param] { cursor: ew-resize; touch-action: none; border-radius: 2px; }
+.panel-code [data-param]:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.plot { grid-column: 1 / -1; position: relative; height: 180px; margin: 8px 0 24px 3ch; font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.plot > span { position: absolute; white-space: nowrap; }
+.plot .y { right: calc(100% + 1ch); top: var(--y); transform: translateY(-50%); }
+.plot .x { top: calc(100% + 10px); left: var(--x); transform: translateX(var(--tx, -50%)); }
+.plot .mark { left: var(--x); top: -4px; margin-left: 6px; }
+.plot .legend { right: 0; bottom: 8px; color: var(--muted); }
+.fig-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--faint);
+  font: 12px/1.8 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
+.fig-foot > :nth-child(2) { color: var(--muted); }
+
+/* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
+@container (max-width: 480px) {
+  .panel { grid-template-columns: 1fr; }
+  .panel > svg { justify-self: center; }
+  .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
+  .fig th, .fig td { padding-inline: 6px; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header data-part="prompt">
+    <p class="prompt"><span class="caret">&gt;</span> <b>/jm-explain</b> how is the copy button animation built?</p>
+    <p class="meta">5 figures · 3 sources · 3 Nov 2026</p>
+  </header>
+
+  <section data-part="problem">
+    <h1>How the copy button swaps its icon</h1>
+    <p>The Copy Page button on interfaces.dev shows a copy icon. Press it and the icon turns into a checkmark; two seconds later the checkmark turns back into the copy icon.<sup class="ref"><a href="#s3">3</a></sup></p>
+    <p>The checkmark is the confirmation. Copying to the clipboard leaves nothing on screen, so the button has to say that it worked. The hard part is the <mark class="subj">icon swap</mark> itself. React replaces one icon with the other in a single frame, which reads as a flicker, and the old icon is gone before anything can animate it out.</p>
+    <p>The fix is four small decisions in Motion, an animation library for React, and each section below takes one of them. Here is the whole effect on one timeline.</p>
+
+    <figure class="fig wide" data-kind="timeline">
+      <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">axis break 300 to 2000ms</span></div>
+      <div class="tl" role="img" aria-label="Timeline: both icons animate from 0 to 300ms after the press, stay still until 2000ms, then animate back from 2000 to 2300ms.">
+        <span></span>
+        <div class="tl-axis"><span style="--at:0%">0ms</span><span style="--at:30%">300ms</span><span style="--at:70%">2000ms</span><span style="--at:100%">2300ms</span></div>
+        <span></span>
+        <div class="tl-bracket">
+          <span class="tl-seg" style="--a:0%;--b:48%"></span><span class="tl-seg" style="--a:52%;--b:100%"></span>
+          <span class="tl-tick" style="--at:0%"></span><span class="tl-tick" style="--at:30%"></span><span class="tl-tick" style="--at:70%"></span><span class="tl-tick" style="--at:100%"></span>
+        </div>
+        <span>copy icon</span>
+        <div class="tl-track"><span class="tl-bar" style="--a:0%;--b:30%"></span><span class="tl-bar" style="--a:70%;--b:100%"></span></div>
+        <span>checkmark</span>
+        <div class="tl-track"><span class="tl-bar" style="--a:0%;--b:30%"></span><span class="tl-bar" style="--a:70%;--b:100%"></span></div>
+      </div>
+      <figcaption>Both icons move in the same two 300ms windows, one leaving while the other arrives. For the 1700ms between them nothing moves.<span class="fig-src">Source: interfaces.dev, Copy Page button</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="primer">
+    <header class="sec"><h2>Before you start</h2><span class="idx">00</span></header>
+    <dl class="terms">
+      <dt>Mount, unmount</dt>
+      <dd>React adds an element to the page (mounts it) and removes it (unmounts it). Unmounting is instant, so by default nothing can animate out.</dd>
+      <dt>Key</dt>
+      <dd>The identity React gives an element. Change the <code>key</code> and React treats it as a new element: the old one unmounts and a new one mounts.</dd>
+      <dt>Exit animation</dt>
+      <dd>An animation that plays as an element leaves. Motion's <code>AnimatePresence</code> keeps a removed child on the page until its <code>exit</code> animation has finished.<sup class="ref"><a href="#s1">1</a></sup></dd>
+      <dt>Spring</dt>
+      <dd>Motion driven by a simulated spring instead of a fixed curve. In Motion you can set it with <code>bounce</code> and <code>duration</code>.<sup class="ref"><a href="#s2">2</a></sup></dd>
+    </dl>
+  </section>
+
+  <section data-part="mechanism" data-step="1">
+    <header class="sec"><h2>The icon is keyed on state</h2><span class="idx">01</span></header>
+    <p>The button holds one piece of state, <code>idle</code> or <code>active</code>. Inside it sits a single <code>m.span</code>, Motion's animated <code>span</code> <span class="inferred">imported in its lighter <code>m</code> form</span>, which takes that state as its <code>key</code>. When the state flips, React sees a new key, so it unmounts the old span and mounts a new one. <code>AnimatePresence</code> wraps the span, notices the removal and keeps the old span on screen until its exit animation ends.<sup class="ref"><a href="#s1">1</a></sup></p>
+
+    <figure class="fig" data-kind="tree">
+      <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">component tree</span></div>
+      <div class="ascii" role="img" aria-label="Tree: AnimatePresence with mode popLayout and initial false wraps one m.span keyed on state; the state is idle for the copy icon or active for the checkmark." style="--cols:50"><pre aria-hidden="true">AnimatePresence  mode="popLayout"  initial={false}
+└─ m.span  <span class="subj">key={state}</span>
+   ├─ "idle"    copy icon
+   └─ "active"  checkmark</pre></div>
+      <figcaption>One child whose key is the state. A new key means a new element, and that gives <code>AnimatePresence</code> something to animate out.<span class="fig-src">Source: Motion docs, AnimatePresence</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="2">
+    <header class="sec"><h2>Exit is enter in reverse</h2><span class="idx">02</span></header>
+    <p>Both swaps run one animation in two directions. The outgoing icon fades to <code>opacity: 0</code>, shrinks to <code>scale: 0.25</code> and blurs to <code>4px</code>. The incoming icon starts from those values and returns to normal.<sup class="ref"><a href="#s3">3</a></sup> <span class="inferred">At this size the blur hides the moment where the two shapes cross</span>, so the eye reads one icon turning into another.</p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">exit and enter values</span></div>
+      <div class="ascii" role="img" aria-label="Exit takes opacity from 1 to 0, scale from 1 to 0.25 and blur from 0 to 4px. Enter runs the same values the other way." style="--cols:48"><pre aria-hidden="true"> exit                       enter
+┌───────────────────┐      ┌───────────────────┐
+│ opacity 1 → 0     │      │ opacity 0 → 1     │
+│ scale   1 → 0.25  │ ───<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg> │ scale   0.25 → 1  │
+│ blur    0px → 4px │      │ blur    4px → 0px │
+└───────────────────┘      └───────────────────┘</pre></div>
+      <figcaption>Enter starts from the values exit ends on. In this button the two run at the same time, not one after the other.<span class="fig-src">Source: interfaces.dev, Copy Page button</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="3">
+    <header class="sec"><h2>popLayout keeps one slot</h2><span class="idx">03</span></header>
+    <p>In the default mode, <code>mode="sync"</code>, the leaving and arriving icons both sit in the layout while they overlap, so for 300ms the button holds two icons side by side and <span class="inferred">grows wider</span>. In <dfn>popLayout</dfn> mode the exiting element is popped out of the layout with absolute positioning, so the new icon takes the slot at once and the old one fades out on top of it.<sup class="ref"><a href="#s1">1</a></sup> It comes with two conditions: the button needs a <code>position</code> other than <code>static</code>, and a custom component child has to forward its ref.<sup class="ref"><a href="#s1">1</a></sup></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">mid-swap, at 150ms</span></div>
+      <div class="ascii" role="img" aria-label="Mid-swap in sync mode the button holds two slots, copy and check, and widens. In popLayout mode it holds one slot, check, and copy is popped out and fades on top of it." style="--cols:51"><pre aria-hidden="true">            ┌──────┬───────┐
+sync        │ copy │ check │  two icons, two slots:
+            └──────┴───────┘  the button widens
+
+            ┌───────┐
+<span class="subj">popLayout</span>   │ check │  copy is popped out of flow
+            └───────┘  and fades on top of check</pre></div>
+      <figcaption>Same moment, two modes. With <code>popLayout</code> the button never changes size.<span class="fig-src">Source: Motion docs, AnimatePresence, mode</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="4">
+    <header class="sec"><h2>A spring with no bounce</h2><span class="idx">04</span></header>
+    <p>The transition is a spring with <code>bounce: <span class="val">0</span></code> and <code>duration: <span class="val">0.3</span></code>, in seconds, since that is the unit Motion takes. A bounce of 0 is critically damped: the value rises fast and settles without overshoot, so the icon never grows past full size.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">From those two numbers Motion solves for a spring of about stiffness 947 and damping 62, which is 99% of the way there at 216ms.</span> Last, <code>initial={false}</code> on <code>AnimatePresence</code> skips the enter animation on the first render, so the icon is simply there when the page loads.<sup class="ref"><a href="#s1">1</a></sup></p>
+
+    <figure class="fig" data-kind="chart">
+      <div class="fig-head"><span class="fig-tag">FIG. 5</span><span class="fig-hint">enter · exit runs it backwards</span></div>
+      <svg role="img" aria-label="Chart of the enter animation over 300ms: opacity rises from 0 to 1 and scale from 0.25 to 1 on the same spring, with no overshoot, reaching 99% at 216ms." width="440" height="204" viewBox="0 0 440 204">
+        <line class="ref-line" x1="44" y1="40" x2="420" y2="40"/>
+        <line class="ref-line" x1="44" y1="139" x2="420" y2="139"/>
+        <line class="ref-line" x1="44" y1="172" x2="420" y2="172"/>
+        <line class="ref-line" x1="314.7" y1="28" x2="314.7" y2="172"/>
+        <path class="series" d="M44.0 139.0 L51.5 137.5 L59.0 133.7 L66.6 128.4 L74.1 122.2 L81.6 115.6 L89.1 108.9 L96.6 102.3 L104.2 96.0 L111.7 90.0 L119.2 84.5 L126.7 79.4 L134.2 74.7 L141.8 70.5 L149.3 66.8 L156.8 63.4 L164.3 60.4 L171.8 57.7 L179.4 55.4 L186.9 53.4 L194.4 51.6 L201.9 50.0 L209.4 48.6 L217.0 47.4 L224.5 46.4 L232.0 45.5 L239.5 44.7 L247.0 44.0 L254.6 43.5 L262.1 43.0 L269.6 42.5 L277.1 42.2 L284.6 41.9 L292.2 41.6 L299.7 41.4 L307.2 41.2 L314.7 41.0 L322.2 40.8 L329.8 40.7 L337.3 40.6 L344.8 40.5 L352.3 40.4 L359.8 40.4 L367.4 40.3 L374.9 40.3 L382.4 40.2 L389.9 40.2 L397.4 40.2 L405.0 40.1 L412.5 40.1 L420.0 40.1"/>
+        <path class="after" d="M314.7 41.3 L322.2 41.1 L329.8 40.9 L337.3 40.8 L344.8 40.7 L352.3 40.6 L359.8 40.5 L367.4 40.4 L374.9 40.4 L382.4 40.3 L389.9 40.3 L397.4 40.2 L405.0 40.2 L412.5 40.2 L420.0 40.1"/>
+        <path class="subj" d="M44.0 172.0 L51.5 170.0 L59.0 164.9 L66.6 157.9 L74.1 149.6 L81.6 140.8 L89.1 131.9 L96.6 123.1 L104.2 114.6 L111.7 106.7 L119.2 99.3 L126.7 92.5 L134.2 86.3 L141.8 80.7 L149.3 75.7 L156.8 71.2 L164.3 67.2 L171.8 63.7 L179.4 60.6 L186.9 57.8 L194.4 55.4 L201.9 53.3 L209.4 51.5 L217.0 49.9 L224.5 48.5 L232.0 47.3 L239.5 46.3 L247.0 45.4 L254.6 44.6 L262.1 44.0 L269.6 43.4 L277.1 42.9 L284.6 42.5 L292.2 42.1 L299.7 41.8 L307.2 41.5 L314.7 41.3" stroke-width="1.5"/>
+        <text x="36" y="44" text-anchor="end">1</text>
+        <text x="36" y="143" text-anchor="end">0.25</text>
+        <text x="36" y="176" text-anchor="end">0</text>
+        <text x="44" y="196">0</text>
+        <text x="169.3" y="196" text-anchor="middle">100</text>
+        <text x="294.7" y="196" text-anchor="middle">200</text>
+        <text x="420" y="196" text-anchor="end">300ms</text>
+        <text x="320" y="24">99% at 216ms</text>
+        <text x="52" y="100">scale</text>
+        <text class="subj" x="114" y="128">opacity</text>
+      </svg>
+      <figcaption>Opacity and scale ride the same critically damped curve, so neither overshoots. After 216ms the last 1% is too small to see.<span class="fig-src">Source: Motion docs, Transitions · curve computed</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="finish">
+    <header class="sec"><h2>What it comes down to</h2><span class="idx">05</span></header>
+    <p>One idea carries the whole effect: <mark class="subj">turn the swap into a remount, then animate the remount</mark>. The key makes the change a remount, <code>AnimatePresence</code> gives the leaving icon time to go, <code>popLayout</code> keeps both in one place, and a quiet spring times it.</p>
+    <p>The same recipe works for any icon with two states, such as play and pause or mute and unmute:</p>
+    <ol class="steps">
+      <li><span><b>Key the icon on state.</b> One <code>m.span</code> inside <code>AnimatePresence</code>, with <code>key={state}</code>.</span></li>
+      <li><span><b>Pop the leaver out of layout.</b> Set <code>mode="popLayout"</code> and give the button a position.</span></li>
+      <li><span><b>Mirror enter and exit.</b> Out to opacity <span class="val">0</span>, scale <span class="val">0.25</span>, blur <span class="val">4px</span>; in by the reverse.</span></li>
+      <li><span><b>Use one quiet spring.</b> <code>bounce: <span class="val">0</span></code>, <code>duration: <span class="val">0.3</span></code>, and <code>initial={false}</code> so nothing plays on load.</span></li>
+      <li><span><b>Time the way back.</b> <span class="inferred">A timer sets the state back to <code>idle</code></span> after <span class="val">2000ms</span>.</span></li>
+    </ol>
+    <p><b>Limits.</b> This page reads the effect from the interfaces.dev description and the Motion docs, not from the site's source, so the timer and the spring constants are inferred. <span class="inferred">A blur filter costs more to paint than opacity or scale</span>, which is fine for one small icon but not for a long list. Under reduced motion, a plain fade is the safer swap.</p>
+  </section>
+
+  <section data-part="sources">
+    <header class="sec"><h2>Sources</h2><span class="idx">06</span></header>
+    <ol class="sources">
+      <li id="s1"><span><a href="https://motion.dev/docs/react-animate-presence">AnimatePresence</a>, Motion docs. Exit animations, <code>mode</code> (sync, wait, popLayout), <code>initial</code>.<span class="label">motion.dev · read 3 Nov 2026</span></span></li>
+      <li id="s2"><span><a href="https://motion.dev/docs/react-transitions">Transitions</a>, Motion docs. Spring <code>bounce</code> and <code>duration</code>; bounce 0 is critically damped.<span class="label">motion.dev · read 3 Nov 2026</span></span></li>
+      <li id="s3"><span><a href="https://interfaces.dev">interfaces.dev</a>, Jakub Krehel. The Copy Page button and its explain-interface walkthrough.<span class="label">interfaces.dev · read 3 Nov 2026</span></span></li>
+    </ol>
+    <p class="label key">Dotted underline: inferred, not sourced</p>
+  </section>
+
+</main>
+</body>
+</html>
