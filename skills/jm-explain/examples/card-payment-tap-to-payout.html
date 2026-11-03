@@ -309,6 +309,14 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
   .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
   .fig th, .fig td { padding-inline: 6px; }
 }
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
 </style>
 </head>
 <body>
@@ -327,15 +335,62 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">four parties · two flows</span></div>
-      <div class="ascii" role="img" aria-label="The card reader in the shop sends a question to the shop's bank, which passes it through the card network to your bank; the yes or no comes back the same way within 1 to 2 seconds. Later, 1 to 3 days on, the money itself flows back from your bank through the network and the shop's bank to the shop." style="--cols:56"><pre aria-hidden="true">  you tap here
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ reader  │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│ shop's  │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  card   │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  your   │
-│ in shop │<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>───│  bank   │<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>───│ network │<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>───│  bank   │
-│         │<span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>┄┄┄</span>│         │<span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>┄┄┄</span>│         │<span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>┄┄┄</span>│         │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-
- ───<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg> question  <svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>─── yes or no      within 1 to 2 s
- <span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z" fill="currentColor"/></svg>┄┄┄ the money itself            1 to 3 days later</span></pre></div>
+      <svg class="grid" role="img" aria-label="The card reader in the shop sends a question to the shop's bank, which passes it through the card network to your bank; the yes or no comes back the same way within 1 to 2 seconds. Later, 1 to 3 days on, the money itself flows back from your bank through the network and the shop's bank to the shop." viewBox="0 0 470.4 151.2" width="470.4" height="151.2">
+<path class="ln" d="M4.2 25.2H88.2"/>
+<path class="ln" d="M130.2 25.2H214.2"/>
+<path class="ln" d="M256.2 25.2H340.2"/>
+<path class="ln" d="M382.2 25.2H466.2"/>
+<path class="ln" d="M92.4 42H121.8"/>
+<path class="ln" d="M218.4 42H247.8"/>
+<path class="ln" d="M344.4 42H373.8"/>
+<path class="ln" d="M96.6 58.8H126"/>
+<path class="ln" d="M222.6 58.8H252"/>
+<path class="ln" d="M348.6 58.8H378"/>
+<path class="ln dash subj" d="M96.6 75.6H126"/>
+<path class="ln dash subj" d="M222.6 75.6H252"/>
+<path class="ln dash subj" d="M348.6 75.6H378"/>
+<path class="ln" d="M4.2 92.4H88.2"/>
+<path class="ln" d="M130.2 92.4H214.2"/>
+<path class="ln" d="M256.2 92.4H340.2"/>
+<path class="ln" d="M382.2 92.4H466.2"/>
+<path class="ln" d="M8.4 126H37.8"/>
+<path class="ln" d="M138.6 126H168"/>
+<path class="ln dash subj" d="M12.6 142.8H42"/>
+<path class="ln" d="M4.2 25.2V92.4"/>
+<path class="ln" d="M88.2 25.2V92.4"/>
+<path class="ln" d="M130.2 25.2V92.4"/>
+<path class="ln" d="M214.2 25.2V92.4"/>
+<path class="ln" d="M256.2 25.2V92.4"/>
+<path class="ln" d="M340.2 25.2V92.4"/>
+<path class="ln" d="M382.2 25.2V92.4"/>
+<path class="ln" d="M466.2 25.2V92.4"/>
+<path class="hd" d="M125.6 42 L120 38.8 L120 45.2 Z"/>
+<path class="hd" d="M251.6 42 L246 38.8 L246 45.2 Z"/>
+<path class="hd" d="M377.6 42 L372 38.8 L372 45.2 Z"/>
+<path class="hd" d="M92.8 58.8 L98.4 55.6 L98.4 62 Z"/>
+<path class="hd" d="M218.8 58.8 L224.4 55.6 L224.4 62 Z"/>
+<path class="hd" d="M344.8 58.8 L350.4 55.6 L350.4 62 Z"/>
+<path class="hd subj" d="M92.8 75.6 L98.4 72.4 L98.4 78.8 Z"/>
+<path class="hd subj" d="M218.8 75.6 L224.4 72.4 L224.4 78.8 Z"/>
+<path class="hd subj" d="M344.8 75.6 L350.4 72.4 L350.4 78.8 Z"/>
+<path class="hd" d="M41.6 126 L36 122.8 L36 129.2 Z"/>
+<path class="hd" d="M134.8 126 L140.4 122.8 L140.4 129.2 Z"/>
+<path class="hd subj" d="M8.8 142.8 L14.4 139.6 L14.4 146 Z"/>
+<text class="tx" x="16.8" y="8.4" textLength="100.8">you tap here</text>
+<text class="tx" x="16.8" y="42" textLength="50.4">reader</text>
+<text class="tx" x="142.8" y="42" textLength="50.4">shop's</text>
+<text class="tx" x="277.2" y="42" textLength="33.6">card</text>
+<text class="tx" x="403.2" y="42" textLength="33.6">your</text>
+<text class="tx" x="16.8" y="58.8" textLength="58.8">in shop</text>
+<text class="tx" x="151.2" y="58.8" textLength="33.6">bank</text>
+<text class="tx" x="268.8" y="58.8" textLength="58.8">network</text>
+<text class="tx" x="403.2" y="58.8" textLength="33.6">bank</text>
+<text class="tx" x="50.4" y="126" textLength="67.2">question</text>
+<text class="tx" x="176.4" y="126" textLength="75.6">yes or no</text>
+<text class="tx" x="302.4" y="126" textLength="126">within 1 to 2 s</text>
+<text class="tx subj" x="50.4" y="142.8" textLength="134.4">the money itself</text>
+<text class="tx subj" x="285.6" y="142.8" textLength="142.8">1 to 3 days later</text>
+</svg>
       <figcaption>The solid arrows carry messages within seconds; the money follows the dotted path days later.<span class="fig-src">Source: Increase, Visa docs; Stripe, clearing vs settlement; Valitor acquiring spec</span></figcaption>
     </figure>
   </section>
@@ -364,15 +419,29 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">inside the tap · values illustrative</span></div>
-      <div class="ascii" role="img" aria-label="The reader supplies the amount, 24.50, and a random number. The card adds its payment counter and a secret key that stays in the chip. Together they produce the cryptogram, which is new on every tap." style="--cols:52"><pre aria-hidden="true">from the reader            from the card
-amount  24.50              counter     0042
-random  7A1C93E0           secret key  stays in chip
-          │                          │
-          └────────────┬─────────────┘
-                       <svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M2.6 0H3.4V7H2.6Z M0.6 6H5.4L3 10.5Z" fill="currentColor"/></svg>
-              ┌─────────────────┐
-              │ <span class="subj">cryptogram</span>      │ <span class="subj">new on every tap</span>
-              └─────────────────┘</pre></div>
+      <svg class="grid" role="img" aria-label="The reader supplies the amount, 24.50, and a random number. The card adds its payment counter and a secret key that stays in the chip. Together they produce the cryptogram, which is new on every tap." viewBox="0 0 436.8 151.2" width="436.8" height="151.2">
+<path class="ln" d="M88.2 75.6H315"/>
+<path class="ln" d="M121.8 109.2H273"/>
+<path class="ln" d="M121.8 142.8H273"/>
+<path class="ln" d="M88.2 50.4V75.6"/>
+<path class="ln" d="M121.8 109.2V142.8"/>
+<path class="ln" d="M197.4 75.6V92.4"/>
+<path class="ln" d="M273 109.2V142.8"/>
+<path class="ln" d="M315 50.4V75.6"/>
+<path class="hd" d="M197.4 100.4 L194.2 94.8 L200.6 94.8 Z"/>
+<text class="tx" x="0" y="8.4" textLength="126">from the reader</text>
+<text class="tx" x="226.8" y="8.4" textLength="109.2">from the card</text>
+<text class="tx" x="0" y="25.2" textLength="50.4">amount</text>
+<text class="tx" x="67.2" y="25.2" textLength="42">24.50</text>
+<text class="tx" x="226.8" y="25.2" textLength="58.8">counter</text>
+<text class="tx" x="327.6" y="25.2" textLength="33.6">0042</text>
+<text class="tx" x="0" y="42" textLength="50.4">random</text>
+<text class="tx" x="67.2" y="42" textLength="67.2">7A1C93E0</text>
+<text class="tx" x="226.8" y="42" textLength="84">secret key</text>
+<text class="tx" x="327.6" y="42" textLength="109.2">stays in chip</text>
+<text class="tx subj" x="134.4" y="126" textLength="84">cryptogram</text>
+<text class="tx subj" x="285.6" y="126" textLength="134.4">new on every tap</text>
+</svg>
       <figcaption>Two inputs change every time: the reader's random number and the card's counter, so the code works once.<span class="fig-src">Source: Bond et al., Chip and Skim</span></figcaption>
     </figure>
   </section>
@@ -406,11 +475,27 @@ random  7A1C93E0           secret key  stays in chip
 
     <figure class="fig" data-kind="tree">
       <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">one shop · one day · illustrative</span></div>
-      <div class="ascii" role="img" aria-label="Tree: one clearing file from the shop's bank to the network, 3 November, holds four records. The 24.50 record with approval code 3F9K2A goes to your bank; the others go to banks B and C, or also to your bank." style="--cols:44"><pre aria-hidden="true">clearing file   shop's bank → network, 3 Nov
-├─ <span class="subj">24.50  approval 3F9K2A   to your bank</span>
-├─ 11.20  approval 88QX01   to bank B
-├─  7.90  approval K2M7P4   to bank C
-└─ 42.00  approval Q1W2E3   to your bank</pre></div>
+      <svg class="grid" role="img" aria-label="Tree: one clearing file from the shop's bank to the network, 3 November, holds four records. The 24.50 record with approval code 3F9K2A goes to your bank; the others go to banks B and C, or also to your bank." viewBox="0 0 369.6 84" width="369.6" height="84">
+<path class="ln" d="M4.2 25.2H16.8"/>
+<path class="ln" d="M4.2 42H16.8"/>
+<path class="ln" d="M4.2 58.8H16.8"/>
+<path class="ln" d="M4.2 75.6H16.8"/>
+<path class="ln" d="M4.2 16.8V75.6"/>
+<text class="tx" x="0" y="8.4" textLength="109.2">clearing file</text>
+<text class="tx" x="134.4" y="8.4" textLength="235.2">shop's bank → network, 3 Nov</text>
+<text class="tx subj" x="25.2" y="25.2" textLength="42">24.50</text>
+<text class="tx subj" x="84" y="25.2" textLength="126">approval 3F9K2A</text>
+<text class="tx subj" x="235.2" y="25.2" textLength="100.8">to your bank</text>
+<text class="tx" x="25.2" y="42" textLength="42">11.20</text>
+<text class="tx" x="84" y="42" textLength="126">approval 88QX01</text>
+<text class="tx" x="235.2" y="42" textLength="75.6">to bank B</text>
+<text class="tx" x="33.6" y="58.8" textLength="33.6">7.90</text>
+<text class="tx" x="84" y="58.8" textLength="126">approval K2M7P4</text>
+<text class="tx" x="235.2" y="58.8" textLength="75.6">to bank C</text>
+<text class="tx" x="25.2" y="75.6" textLength="42">42.00</text>
+<text class="tx" x="84" y="75.6" textLength="126">approval Q1W2E3</text>
+<text class="tx" x="235.2" y="75.6" textLength="100.8">to your bank</text>
+</svg>
       <figcaption>Each record carries the approval it settles, so every bank can tie it back to the yes it gave.<span class="fig-src">Source: Increase, Visa docs · records illustrative</span></figcaption>
     </figure>
   </section>

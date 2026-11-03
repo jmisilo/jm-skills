@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>tight-but-ok</title>
-<!-- Probe and checker fixture (--gallery). Tight but legal: 12px-pitch label stack, accent leader touching its label, an 11px label in a 430-wide viewBox, and a 56-column ascii line with an svg.ah arrowhead. Probe must give ok:true at 1280 and 390. -->
+<!-- Probe and checker fixture (--gallery). Tight but legal: 12px-pitch label stack, accent leader touching its label, an 11px label in a 430-wide viewBox, and a 56-column grid figure (ascii-figure.mjs) with an arrowhead. Probe must give ok:true at 1280 and 390. -->
 <style>
 :root {
   --paper: #fafafa; --ink: #171717; --ink-2: #525252; --muted: #8f8f8f; --faint: #bdbdbd;
@@ -56,6 +56,14 @@ figcaption { margin-top: 16px; border-top: 1px dotted var(--rule); padding-top: 
 .fig-src { display: block; margin-top: 4px; }
 ol.sources { font-size: 13px; color: var(--ink-2); }
 
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
 </style>
 </head>
 <body>
@@ -79,9 +87,13 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
 
   <figure class="fig" data-kind="ascii">
     <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">56 columns</span></div>
-    <div class="ascii" role="img" aria-label="Client sends a request to the server across a 56 column line" style="--cols:56"><pre aria-hidden="true">
-client ─────────────────────────────────────────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg> server
-1234567890123456789012345678901234567890123456789012345</pre></div>
+    <svg class="grid" role="img" aria-label="Client sends a request to the server across a 56 column line" viewBox="0 0 470.4 33.6" width="470.4" height="33.6">
+<path class="ln" d="M58.8 8.4H407.4"/>
+<path class="hd" d="M411.2 8.4 L405.6 5.2 L405.6 11.6 Z"/>
+<text class="tx" x="0" y="8.4" textLength="50.4">client</text>
+<text class="tx" x="420" y="8.4" textLength="50.4">server</text>
+<text class="tx" x="0" y="25.2" textLength="462">1234567890123456789012345678901234567890123456789012345</text>
+</svg>
     <figcaption>The arrowhead is one column, so the line is exactly 56.</figcaption>
   </figure>
 
