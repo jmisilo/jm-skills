@@ -1,0 +1,489 @@
+<!doctype html>
+<!-- jm-explain example. Request: /jm-explain how does a card payment go from tapping my card at a shop to the money landing in the merchant's account? I might lack payments background. -->
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a card tap becomes money in the shop's account</title>
+<!-- accent: #1f6feb on #fafafa = 4.44:1, under 4.5. Same OKLCH hue (259.7) and chroma (0.202),
+     lightness 0.569 -> 0.555 gives #1a6be6. Relative luminance 0.1645 vs paper 0.9560:
+     (0.9560 + 0.05) / (0.1645 + 0.05) = 4.69:1, passes AA for normal text. -->
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #171717;
+  --ink-2: #525252;
+  --muted: #8f8f8f;
+  --faint: #bdbdbd;
+  --rule: #ebebeb;
+  --well: #efefef;
+  --accent: #1a6be6;
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px;
+  --fig-width: 880px;
+}
+
+/* == base == */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--paper); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font: 15px/1.6 var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: var(--accent-soft); }
+p { margin: 0 0 16px; text-wrap: pretty; }
+a { color: var(--ink); text-decoration: underline 1px var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink-2); }
+b, strong { font-weight: 600; }
+
+/* == page: prose in --measure, figures break out to --fig-width == */
+.page { max-width: calc(var(--fig-width) + 40px); margin: 0 auto; padding: 72px 20px 120px; }
+.page > * > :not(.fig) { max-width: var(--measure); margin-inline: auto; }
+.page > section { margin-top: 64px; }
+.page > [data-part="problem"] { margin-top: 40px; }
+
+/* == prompt header == */
+.prompt {
+  margin-bottom: 0;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  font: 13px/1.6 var(--mono);
+  color: var(--ink-2);
+}
+.prompt .caret { color: var(--muted); }
+.prompt b { color: var(--ink); }
+.meta {
+  margin-top: 4px;
+  padding: 0 0 16px 15.6px; /* 2ch of the 13px prompt */
+  border-bottom: 1px solid var(--rule);
+  font: 11px/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+/* == headings == */
+h1 { margin: 0 0 16px; font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
+.sec { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.sec::after { content: ""; order: 1; flex: 1; border-top: 1px solid var(--rule); }
+.sec .idx { order: 2; }
+.idx, .label {
+  font: 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* == inline == */
+code {
+  padding: .05em .25em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: .9em;
+}
+dfn { font-style: normal; font-weight: 600; }
+mark { background: none; color: inherit; }
+.subj, [data-subj], .val { color: inherit; font-weight: 600; background: none; }
+.fig .subj, .fig [data-subj], .fig .val { color: var(--accent); font-weight: inherit; }
+.val { font-variant-numeric: tabular-nums; }
+.inferred { text-decoration: none; }
+.inferred::after { content: "~"; font: 10px var(--mono); color: var(--muted); vertical-align: super; margin-left: 1px; }
+.fault { color: var(--fault); }
+sup.ref { font: 10px/0 var(--mono); vertical-align: super; margin-left: 1px; }
+sup.ref a { padding: 0 1px; color: var(--ink-2); text-decoration: none; }
+sup.ref a:hover { color: var(--ink); }
+.lead { font-weight: 600; }
+
+/* == primer: term | definition rows == */
+dl.terms {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  margin-block: 0;
+  border-bottom: 1px solid var(--rule);
+}
+dl.terms dt, dl.terms dd { padding: 12px 0; border-top: 1px solid var(--rule); }
+dl.terms dt {
+  padding-right: 24px;
+  font: 11px/24px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+}
+dl.terms dd { margin: 0; color: var(--ink); }
+
+/* == numbered steps: faint numerals, bold lead-in, grey rest == */
+ol.steps { margin: 0 0 24px; padding: 0; list-style: none; counter-reset: step; border-bottom: 1px solid var(--rule); }
+ol.steps > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  counter-increment: step;
+}
+ol.steps > li::before {
+  content: counter(step, decimal-leading-zero);
+  font: 12px/24px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+ol.steps > li > span > b:first-child { color: var(--ink); }
+
+/* == sources == */
+ol.sources { margin: 0; padding: 0; list-style: none; counter-reset: src; font-size: 14px; }
+ol.sources > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 8px 0;
+  color: var(--ink-2);
+  counter-increment: src;
+}
+ol.sources > li::before {
+  content: counter(src, decimal-leading-zero);
+  font: 12px/22px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+ol.sources .label { display: block; margin-top: 4px; }
+ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink); }
+.key { margin-top: 24px; }
+
+@media (max-width: 480px) {
+  .page { padding-top: 40px; }
+  dl.terms { grid-template-columns: 1fr; }
+  dl.terms dt { padding-bottom: 4px; }
+  dl.terms dd { padding-top: 0; border-top: 0; }
+  ol.steps > li, ol.sources > li { grid-template-columns: 28px 1fr; }
+}
+
+/* == figures == */
+/* Figures sit on the paper: no card, border, fill or shadow. Default width is --measure; .wide breaks out to --fig-width. */
+.fig { max-width: var(--measure); margin: 40px auto; padding: 0; border: 0; background: none; container-type: inline-size; }
+.fig.wide { max-width: var(--fig-width); }
+.fig-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.fig-tag, .fig-hint, .fig-src, .fig-name {
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.fig-name { margin-right: auto; color: var(--ink-2); }
+.fig-hint { text-align: right; }
+.fig figcaption {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--faint);
+  font: 13px/1.5 var(--sans);
+  color: var(--ink-2);
+}
+.fig-src { display: block; margin-top: 4px; }
+
+/* svg: drawn at real size (width = viewBox width), never scaled up, centred; 1px strokes at any scale */
+.fig svg { overflow: visible; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig > svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+.fig svg text { font: 12px var(--mono); font-variant-numeric: tabular-nums; fill: var(--ink-2); stroke: none; }
+.fig svg text.lbl { font-size: 11px; letter-spacing: .06em; }
+.fig svg text.mut { fill: var(--muted); }
+.fig svg .ln { stroke: var(--ink-2); fill: none; }
+.fig svg .ln-faint { stroke: var(--faint); fill: none; }
+.fig svg .leader { stroke: var(--muted); fill: none; }
+.fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
+.fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .dash { stroke: var(--muted); stroke-dasharray: 2 4; fill: none; }
+.fig svg .solid { fill: var(--ink-2); stroke: none; }
+.fig svg .ref-line { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .series { stroke: var(--ink-2); fill: none; }
+.fig svg .after { stroke: var(--muted); fill: none; }
+.fig svg .subj { stroke: var(--accent); fill: none; }
+.fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
+.fig svg .solid.subj { fill: var(--accent); stroke: none; }
+.fig svg text.subj { fill: var(--accent); stroke: none; }
+
+/* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
+.ascii { container-type: inline-size; font-size: 14px; }
+.ascii pre {
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)));
+  line-height: 1.2;
+  color: var(--ink-2);
+  user-select: none;
+}
+
+/* timeline: label column + track, positions as % */
+.tl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 14px;
+  align-items: center;
+  font: 12px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.tl-axis, .tl-bracket, .tl-track { position: relative; }
+.tl-axis { height: 14px; }
+.tl-axis span { position: absolute; left: var(--at); transform: translateX(-50%); white-space: nowrap; }
+.tl-axis span:first-child { transform: none; }
+.tl-axis span:last-child { transform: translateX(-100%); }
+.tl-bracket { height: 8px; }
+.tl-seg { position: absolute; left: var(--a); width: calc(var(--b) - var(--a)); bottom: 0; height: 8px; border-bottom: 1px solid var(--faint); }
+.tl-tick { position: absolute; left: var(--at); bottom: 0; width: 1px; height: 8px; background: var(--faint); }
+.tl-tick:last-child { margin-left: -1px; }
+.tl-track { height: 8px; background: var(--well); }
+.tl-bar { position: absolute; top: 0; bottom: 0; left: var(--a); width: calc(var(--b) - var(--a)); background: var(--ink-2); }
+.tl-track[data-subj] .tl-bar { background: var(--accent); }
+
+/* stack: one hairline block per layer, top of the stack first */
+.stack { display: grid; gap: 4px; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.stack > div { display: grid; grid-template-columns: 9ch 1fr auto; gap: 16px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--faint); }
+.stack > div > :first-child { color: var(--ink); }
+.stack > div > :last-child { text-align: right; }
+.stack > [data-subj] { border-color: var(--accent); }
+
+/* units: one square per unit, key underneath */
+.units { display: grid; gap: 12px; justify-items: center; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.units-grid { display: grid; grid-template-columns: repeat(var(--per-row, 20), 12px); gap: 4px; }
+.units-grid i, .units-key i { display: block; width: 12px; height: 12px; background: var(--well); }
+.units-grid .on, .units-key .on { background: var(--ink-2); }
+.units-grid .subj, .units-key .subj { background: var(--accent); }
+.units-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.units-key span { display: inline-flex; align-items: center; gap: 8px; }
+.units-key i { width: 8px; height: 8px; }
+
+/* table: semantic table, hairline rows, --well header row */
+.fig table { width: 100%; border-collapse: collapse; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.fig th, .fig td { padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.fig th { font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; background: var(--well); }
+.fig th:first-child, .fig td:first-child { padding-left: 8px; }
+.fig .num { text-align: right; }
+
+/* panel: tag line, code with live values, small schematic, chart, footer with formula and readouts */
+.panel { display: grid; grid-template-columns: 1fr auto; gap: 24px 32px; align-items: start; }
+.panel-code { font: 13px/1.85 var(--mono); color: var(--ink-2); counter-reset: ln; }
+.panel-code > div { white-space: pre; counter-increment: ln; }
+.panel-code > div::before { content: counter(ln); display: inline-block; width: 3ch; color: var(--faint); }
+.panel-code b { font-weight: 600; color: var(--ink); }
+.panel-code .c { color: var(--muted); }
+.panel-code [data-param] { cursor: ew-resize; touch-action: none; border-radius: 2px; }
+.panel-code [data-param]:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.plot { grid-column: 1 / -1; position: relative; height: 180px; margin: 8px 0 24px 3ch; font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.plot > span { position: absolute; white-space: nowrap; }
+.plot .y { right: calc(100% + 1ch); top: var(--y); transform: translateY(-50%); }
+.plot .x { top: calc(100% + 10px); left: var(--x); transform: translateX(var(--tx, -50%)); }
+.plot .mark { left: var(--x); top: -4px; margin-left: 6px; }
+.plot .legend { right: 0; bottom: 8px; color: var(--muted); }
+.fig-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--faint);
+  font: 12px/1.8 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
+.fig-foot > :nth-child(2) { color: var(--muted); }
+
+/* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
+@container (max-width: 480px) {
+  .panel { grid-template-columns: 1fr; }
+  .panel > svg { justify-self: center; }
+  .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
+  .fig th, .fig td { padding-inline: 6px; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header data-part="prompt">
+    <p class="prompt"><span class="caret">&gt;</span> <b>/jm-explain</b> how does a card payment go from tapping my card at a shop to the money landing in the merchant's account? I might lack payments background.</p>
+    <p class="meta">6 figures · 9 sources · 3 Nov 2026</p>
+  </header>
+
+  <section data-part="problem">
+    <h1>How a card tap becomes money in the shop's account</h1>
+    <p>A card payment lets a shop take money from your bank account and get an answer before you put the card away. It does this with two separate flows. In the first, a message asks your bank whether it will pay, say, €24.50, and the answer comes back in about 1 to 2&nbsp;seconds.<sup class="ref"><a href="#s5">5</a></sup> In the second, which runs in batches over the next 1 to 3&nbsp;business days, the money itself moves.<sup class="ref"><a href="#s8">8</a></sup></p>
+    <p><span class="inferred">The split exists because the two jobs want different things: the shop needs a fast, reliable yes before it hands over the goods, while moving money between banks is cheaper in daily totals than one purchase at a time.</span> So the yes at the till is a <mark class="subj">promise from your bank</mark>, and the rest of the system is how that promise gets kept.</p>
+    <p>The figure shows the four parties and both flows; each section below follows one hop.</p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">four parties · two flows</span></div>
+      <div class="ascii" role="img" aria-label="The card reader in the shop sends a question to the shop's bank, which passes it through the card network to your bank; the yes or no comes back the same way within 1 to 2 seconds. Later, 1 to 3 days on, the money itself flows back from your bank through the network and the shop's bank to the shop." style="--cols:56"><pre aria-hidden="true">  you tap here
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│ reader  │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│ shop's  │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  card   │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  your   │
+│ in shop │<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>───│  bank   │<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>───│ network │<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>───│  bank   │
+│         │<span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>┄┄┄</span>│         │<span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>┄┄┄</span>│         │<span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>┄┄┄</span>│         │
+└─────────┘    └─────────┘    └─────────┘    └─────────┘
+
+ ───<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg> question  <svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>─── yes or no      within 1 to 2 s
+ <span class="subj"><svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M6 1.5 L0 5 L6 8.5 Z" fill="currentColor"/></svg>┄┄┄ the money itself            1 to 3 days later</span></pre></div>
+      <figcaption>The solid arrows carry messages within seconds; the money follows the dotted path days later.<span class="fig-src">Source: Increase, Visa docs; Stripe, clearing vs settlement; Valitor acquiring spec</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="primer">
+    <header class="sec"><h2>Before you start</h2><span class="idx">00</span></header>
+    <dl class="terms">
+      <dt>Issuer</dt>
+      <dd>Your bank, the one that issued your card.<sup class="ref"><a href="#s6">6</a></sup> It checks your funds and approves or declines each payment.<sup class="ref"><a href="#s6">6</a></sup></dd>
+      <dt>Acquirer</dt>
+      <dd>The shop's bank for card payments. It collects the shop's card sales and submits them to the card network.<sup class="ref"><a href="#s8">8</a></sup></dd>
+      <dt>Card network</dt>
+      <dd>Visa, Mastercard and the like: the network that carries a card brand's transactions between the banks.<sup class="ref"><a href="#s6">6</a></sup></dd>
+      <dt>Hold</dt>
+      <dd>The amount your bank sets aside after it says yes, guaranteed to the shop, though no money has moved yet.<sup class="ref"><a href="#s6">6</a></sup></dd>
+      <dt>Clearing, settlement</dt>
+      <dd>Clearing is the exchange of the final sale records after the purchase.<sup class="ref"><a href="#s8">8</a></sup> Settlement is when money actually moves between banks.<sup class="ref"><a href="#s8">8</a></sup></dd>
+      <dt>Interchange</dt>
+      <dd>A fee your bank keeps from each card purchase.<sup class="ref"><a href="#s9">9</a></sup> In the EU it is capped at 0.2% of the amount for consumer debit cards and 0.3% for consumer credit cards.<sup class="ref"><a href="#s9">9</a></sup></dd>
+    </dl>
+  </section>
+
+  <section data-part="mechanism" data-step="1">
+    <header class="sec"><h2>The tap hands over a one-time code</h2><span class="idx">01</span></header>
+    <p>The card reader puts out a 13.56&nbsp;MHz radio field, the one the contactless card standard ISO/IEC 14443 defines, and the chip in your card answers through it.<sup class="ref"><a href="#s1">1</a></sup> The reader gives the chip the amount and a fresh random number. The chip mixes them with a counter it raises on every payment and, with a secret key that only it and your bank hold, computes a short one-time code called the cryptogram.<sup class="ref"><a href="#s2">2</a></sup> Because the counter and the random number change on every tap, a recorded code cannot be reused for another purchase.<sup class="ref"><a href="#s2">2</a></sup></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">inside the tap · values illustrative</span></div>
+      <div class="ascii" role="img" aria-label="The reader supplies the amount, 24.50, and a random number. The card adds its payment counter and a secret key that stays in the chip. Together they produce the cryptogram, which is new on every tap." style="--cols:52"><pre aria-hidden="true">from the reader            from the card
+amount  24.50              counter     0042
+random  7A1C93E0           secret key  stays in chip
+          │                          │
+          └────────────┬─────────────┘
+                       <svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0.5 3 L5.5 3 L3 8 Z" fill="currentColor"/></svg>
+              ┌─────────────────┐
+              │ <span class="subj">cryptogram</span>      │ <span class="subj">new on every tap</span>
+              └─────────────────┘</pre></div>
+      <figcaption>Two inputs change every time: the reader's random number and the card's counter, so the code works once.<span class="fig-src">Source: Bond et al., Chip and Skim</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="2">
+    <header class="sec"><h2>Your bank is asked, and says yes</h2><span class="idx">02</span></header>
+    <p>The reader sends the card details and the cryptogram to the shop's bank, which wraps them in a standard card message, ISO 8583 type <code>0100</code>, an authorization request.<sup class="ref"><a href="#s3">3</a></sup> The card network forwards it to your bank.<sup class="ref"><a href="#s6">6</a></sup> Your bank checks the cryptogram against its copy of the key,<sup class="ref"><a href="#s2">2</a></sup> checks your funds and puts a hold on the amount.<sup class="ref"><a href="#s6">6</a></sup> It replies with a <code>0110</code> message carrying response code <code>00</code>, approved.<sup class="ref"><a href="#s3">3</a></sup> The reply retraces the path, and the reader shows "approved", usually 1 to 2&nbsp;seconds after the tap.<sup class="ref"><a href="#s5">5</a></sup> If the shop never follows up, the hold lapses, after about 5&nbsp;days for a Visa payment made in person.<sup class="ref"><a href="#s7">7</a></sup></p>
+
+    <figure class="fig" data-kind="sequence">
+      <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">authorization · time runs down</span></div>
+      <svg role="img" aria-label="Sequence: the 0100 request goes from the reader to the acquirer, the network and the issuer. The issuer checks the code, checks funds and holds 24.50 euros, then sends a 0110 reply with code 00 back through the network and acquirer to the reader, which shows approved." width="420" height="244" viewBox="0 0 420 244">
+        <text class="lbl" x="30" y="12" text-anchor="middle">READER</text><text class="lbl" x="120" y="12" text-anchor="middle">ACQUIRER</text><text class="lbl" x="210" y="12" text-anchor="middle">NETWORK</text><text class="lbl" x="300" y="12" text-anchor="middle">ISSUER</text>
+        <path class="life" d="M30 22 V240 M120 22 V240 M210 22 V240 M300 22 V240"/>
+        <line class="ln" x1="30" y1="50" x2="114" y2="50"/><path class="solid" d="M120 50 l-6 -3 v6 z"/><text x="75" y="44" text-anchor="middle">0100</text>
+        <line class="ln" x1="120" y1="76" x2="204" y2="76"/><path class="solid" d="M210 76 l-6 -3 v6 z"/><text x="165" y="70" text-anchor="middle">0100</text>
+        <line class="ln" x1="210" y1="102" x2="294" y2="102"/><path class="solid" d="M300 102 l-6 -3 v6 z"/><text x="255" y="96" text-anchor="middle">0100</text>
+        <text x="310" y="126">check code</text>
+        <text x="310" y="142">check funds</text>
+        <text class="subj" x="310" y="158">hold €24.50</text>
+        <line class="ln subj" x1="300" y1="182" x2="216" y2="182"/><path class="solid subj" d="M210 182 l6 -3 v6 z"/><text class="subj" x="255" y="176" text-anchor="middle">0110 · 00</text>
+        <line class="ln subj" x1="210" y1="206" x2="126" y2="206"/><path class="solid subj" d="M120 206 l6 -3 v6 z"/><text class="subj" x="165" y="200" text-anchor="middle">0110 · 00</text>
+        <line class="ln subj" x1="120" y1="230" x2="36" y2="230"/><path class="solid subj" d="M30 230 l6 -3 v6 z"/><text class="subj" x="75" y="224" text-anchor="middle">approved</text>
+      </svg>
+      <figcaption>Only your bank decides; everyone else forwards. The approval that comes back is a promise backed by the hold.<span class="fig-src">Source: ISO 8583 (Wikipedia summary); Stripe, How cards work</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="3">
+    <header class="sec"><h2>That night, the shop's bank sends the receipts</h2><span class="idx">03</span></header>
+    <p>An approval is not yet a payment: in this design the request posts nothing to your account, and a separate file sent later turns the approval into a charge.<sup class="ref"><a href="#s3">3</a></sup> At the end of the day the shop's card sales go into one batch, and the shop's bank sends them to the network as a clearing file, on business days.<sup class="ref"><a href="#s4">4</a></sup> <span class="inferred">The network sorts the records by bank, and your bank matches its record to the hold by the six-character approval code from its reply</span>, then posts the charge. Clearing usually completes within hours of the batch arriving.<sup class="ref"><a href="#s8">8</a></sup></p>
+
+    <figure class="fig" data-kind="tree">
+      <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">one shop · one day · illustrative</span></div>
+      <div class="ascii" role="img" aria-label="Tree: one clearing file from the shop's bank to the network, 3 November, holds four records. The 24.50 record with approval code 3F9K2A goes to your bank; the others go to banks B and C, or also to your bank." style="--cols:44"><pre aria-hidden="true">clearing file   shop's bank → network, 3 Nov
+├─ <span class="subj">24.50  approval 3F9K2A   to your bank</span>
+├─ 11.20  approval 88QX01   to bank B
+├─  7.90  approval K2M7P4   to bank C
+└─ 42.00  approval Q1W2E3   to your bank</pre></div>
+      <figcaption>Each record carries the approval it settles, so every bank can tie it back to the yes it gave.<span class="fig-src">Source: Increase, Visa docs · records illustrative</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="4">
+    <header class="sec"><h2>The network nets, then the money moves</h2><span class="idx">04</span></header>
+    <p>Settlement moves money in daily totals, not per purchase. Your bank pays what it owes for the day to the card network, which nets the amounts, meaning it offsets what each bank owes against what it is owed, so each shop's bank receives one sum for the day.<sup class="ref"><a href="#s8">8</a></sup> On the way your bank keeps the interchange: at most 0.2% of €24.50 under the EU debit cap, about €0.05.<sup class="ref"><a href="#s9">9</a></sup> <span class="inferred">The network also charges the shop's bank a fee, and the shop's bank takes a margin; neither is published per payment</span>, shown here as <code>s</code> and <code>m</code>.</p>
+
+    <figure class="fig" data-kind="table">
+      <div class="fig-head"><span class="fig-tag">FIG. 5</span><span class="fig-hint">one €24.50 debit tap · eu</span></div>
+      <table>
+        <thead><tr><th>Leg</th><th class="num">Amount, €</th><th class="num">Sender keeps</th></tr></thead>
+        <tbody>
+          <tr><td>you → issuer</td><td class="num">24.50</td><td class="num">0</td></tr>
+          <tr><td>issuer → network</td><td class="num">24.45</td><td class="num">≤ 0.05</td></tr>
+          <tr><td>network → acquirer</td><td class="num">24.45 − s</td><td class="num">s</td></tr>
+          <tr data-subj><td>acquirer → shop</td><td class="num">24.45 − s − m</td><td class="num">m</td></tr>
+        </tbody>
+      </table>
+      <figcaption>The shop gets the price minus three cuts: interchange, the network's fee <code>s</code> and the acquirer's margin <code>m</code>.<span class="fig-src">Source: Regulation (EU) 2015/751; Stripe, clearing vs settlement · s and m unknown</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="5">
+    <header class="sec"><h2>The shop gets paid on a schedule</h2><span class="idx">05</span></header>
+    <p>Settlement between the banks takes 1 to 3&nbsp;business days, and the shop's bank then pays the shop on a set payout schedule that need not line up with it: many providers smooth the timing into a fixed payout calendar.<sup class="ref"><a href="#s8">8</a></sup> For the shop, your €24.50 arrives inside one lump deposit for the day's card sales, <span class="inferred">typically a day or two after the tap</span>.</p>
+
+    <figure class="fig" data-kind="timeline">
+      <div class="fig-head"><span class="fig-tag">FIG. 6</span><span class="fig-hint">illustrative · business days · authorization drawn wider</span></div>
+      <div class="tl" role="img" aria-label="Timeline over three business days: authorization takes about 2 seconds at the tap; the hold sits on your account until clearing that night; settlement between banks runs on day 1; the payout reaches the shop on day 2.">
+        <span></span>
+        <div class="tl-axis"><span style="--at:0%">tap</span><span style="--at:33.3%">day 1</span><span style="--at:66.7%">day 2</span><span style="--at:100%">day 3</span></div>
+        <span></span>
+        <div class="tl-bracket"><span class="tl-seg" style="--a:0%;--b:100%"></span><span class="tl-tick" style="--at:0%"></span><span class="tl-tick" style="--at:33.3%"></span><span class="tl-tick" style="--at:66.7%"></span><span class="tl-tick" style="--at:100%"></span></div>
+        <span>authorization</span><div class="tl-track"><span class="tl-bar" style="--a:0%;--b:1%"></span></div>
+        <span>hold</span><div class="tl-track"><span class="tl-bar" style="--a:0%;--b:30%"></span></div>
+        <span>clearing</span><div class="tl-track"><span class="tl-bar" style="--a:27%;--b:31%"></span></div>
+        <span>settlement</span><div class="tl-track"><span class="tl-bar" style="--a:36%;--b:42%"></span></div>
+        <span class="subj">payout to shop</span><div class="tl-track" data-subj><span class="tl-bar" style="--a:69%;--b:74%"></span></div>
+      </div>
+      <figcaption>Two seconds decide the payment; the days after it only move the money.<span class="fig-src">Source: Stripe, clearing vs settlement; Valitor acquiring spec · positions illustrative</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="finish">
+    <header class="sec"><h2>What it comes down to</h2><span class="idx">06</span></header>
+    <p>One idea carries the whole system: <mark class="subj">promise now, pay later, in bulk</mark>. The tap gets a promise from your bank in about two seconds, protected by a code that works once. The money follows in daily batches, netted between banks, and reaches the shop on its bank's schedule.</p>
+    <p>The same split works wherever a quick yes and a slow, costly transfer have to live together:</p>
+    <ol class="steps">
+      <li><span><b>Prove the request is fresh.</b> A code built from a counter and a random challenge beats a static secret that can be copied.</span></li>
+      <li><span><b>Reserve, don't move.</b> A hold sets the money aside and can lapse, so nothing irreversible happens at the till.</span></li>
+      <li><span><b>Confirm separately.</b> A later record, tied to the approval, turns the reservation into a charge.</span></li>
+      <li><span><b>Settle net.</b> Add everything up per party and move one sum a day.</span></li>
+    </ol>
+    <p><b>Limits.</b> This page follows a physical card tapped at a shop. <span class="inferred">Phone wallets send a stand-in number instead of the card number, online payments add an identity check with your bank</span>, and some debit payments use a single <code>0200</code> message that asks and posts at once.<sup class="ref"><a href="#s3">3</a></sup> Refunds, disputes and how fees are set are left out. The timings in FIG. 6 are illustrative; real ones vary by country and contract.</p>
+  </section>
+
+  <section data-part="sources">
+    <header class="sec"><h2>Sources</h2><span class="idx">07</span></header>
+    <ol class="sources">
+      <li id="s1"><span><a href="https://en.wikipedia.org/wiki/ISO/IEC_14443">ISO/IEC 14443</a>, Wikipedia. 13.56 MHz proximity cards; EMV payment cards as an implementation.<span class="label">wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s2"><span><a href="https://arxiv.org/abs/1209.2531">Chip and Skim: cloning EMV cards with the pre-play attack</a>, Bond, Choudary, Murdoch, Skorobogatov, Anderson, 2012. How the cryptogram is built from the transaction counter and the reader's unpredictable number, and checked by the issuer.<span class="label">arxiv.org · read 3 Nov 2026</span></span></li>
+      <li id="s3"><span><a href="https://en.wikipedia.org/wiki/ISO_8583">ISO 8583</a>, Wikipedia. Message types 0100, 0110, 0200; response code and approval code fields; dual- and single-message systems.<span class="label">wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s4"><span><a href="https://increase.com/documentation/visa">Visa</a>, Increase documentation. Authorization as synchronous approval, clearing as asynchronous files sent on business days.<span class="label">increase.com · read 3 Nov 2026</span></span></li>
+      <li id="s5"><span><a href="https://specs.valitor.is/Acquiring/PaymentService/en/Process/">Process</a>, Valitor acquiring payment service spec. Average authorization response 1 to 2 seconds.<span class="label">specs.valitor.is · read 3 Nov 2026</span></span></li>
+      <li id="s6"><span><a href="https://docs.stripe.com/payments/cards/overview">How cards work</a>, Stripe docs. Card issuers and card networks defined; the issuer checks funds and holds the amount.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s7"><span><a href="https://docs.stripe.com/payments/capture-later">Place a hold on a payment method</a>, Stripe docs. Authorization windows by network, 5 days for Visa card-present.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s8"><span><a href="https://stripe.com/resources/more/clearing-vs-settlement-in-payments">Clearing vs. settlement in payments</a>, Stripe. Batches, netting, 1 to 3 business days, payout schedules.<span class="label">stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s9"><span><a href="https://eur-lex.europa.eu/EN/legal-content/summary/fees-for-card-based-payments.html">Interchange fees for card-based payments</a>, EUR-Lex summary of Regulation (EU) 2015/751. Caps of 0.2% for consumer debit and 0.3% for consumer credit card transactions.<span class="label">eur-lex.europa.eu · read 3 Nov 2026</span></span></li>
+    </ol>
+    <p class="label key">~ inferred, not sourced</p>
+  </section>
+
+</main>
+</body>
+</html>
