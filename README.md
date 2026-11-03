@@ -22,6 +22,19 @@ npx skills add jmisilo/jm-skills --skill jm-write-skill               # one skil
 
 From a local clone, pass its path instead of `jmisilo/jm-skills`.
 
+### As a Claude Code plugin
+
+The repo is also a plugin marketplace (`.claude-plugin/marketplace.json`) with one plugin, `jm-skills`, that bundles all five skills. Claude Code keeps it in sync with the repo:
+
+```bash
+/plugin install jm-skills --marketplace jmisilo/jm-skills   # Claude Code 2.1.275+
+# or, in two steps
+/plugin marketplace add jmisilo/jm-skills
+/plugin install jm-skills@jm-skills
+```
+
+Pull new commits with `/plugin marketplace update jm-skills`. Plugin skills are namespaced, so they start as `/jm-skills:jm-explain`. When you add a skill, also list its folder under `skills` in the marketplace file.
+
 ## Writing or changing a skill
 
 Use `jm-write-skill`, then lint before committing:
