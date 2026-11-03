@@ -26,7 +26,7 @@ const RULES = {
   "mechanism-step": ["FAIL", "number the mechanism sections data-step=\"1\"..\"N\" in document order"],
   "step-count": ["WARN", "scope to the question: 4 to 7 mechanism steps"],
   "figure-count": ["WARN", "use one figure per step, one overview and at most one extra"],
-  "word-count": ["WARN", "cut to the question asked; keep prose under 2,500 words"],
+  "word-count": ["WARN", "aim for 900 to 1,400 words; cut steps, tables or paragraphs that the question doesn't need"],
   // colour (R3)
   "color-literal": ["FAIL", "replace the literal with var(--token); literals live only in the top-level :root token block"],
   "token-missing": ["FAIL", "copy the :root token block from assets/template.html unchanged"],
@@ -777,7 +777,7 @@ for (const node of walk(body)) {
     if (!dashed.has(host)) dashed.set(host, t);
   }
 }
-if (words > 2500) report("word-count", `${words} prose words`);
+if (words > 1600) report("word-count", `${words} prose words (over 1,600)`);
 for (const [host, t] of dashed) {
   const k = t.indexOf("—");
   report("em-dash", `em dash in ${label(host)} "${snippet(t.slice(Math.max(0, k - 20), k + 20))}" (${at(host)})`);

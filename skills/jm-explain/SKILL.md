@@ -27,12 +27,13 @@ The user's explicit wishes in the request override this skill. The format rules 
    - 2 to 6 primer terms, chosen by asking which words a smart newcomer would stop at;
    - 4 to 7 mechanism steps, each as: the claim, the figure kind, what the figure makes visible;
    - the finish: the whole mechanism as one idea, what transfers to other systems, and the limits of this explanation.
-   Then check that no step uses a term defined only later. Read [markdown.md](markdown.md) when the request contains `--md`, and follow it instead of steps 4 to 7.
+   Then check that no step uses a term defined only later. Read [markdown.md](markdown.md) when the request contains `--md`, and follow it instead of steps 4 to 8.
 4. **Pick figures.** Read [figures.md](figures.md) when you reach this step, on every HTML page. One figure per step plus the overview, each one a kind from its table, 3 to 8 elements each. The first time you build a page in a session, also read one file in `examples/` for the finished density and voice.
 5. **Build.** Run `mkdir -p explain`, copy `${CLAUDE_SKILL_DIR}/assets/template.html` to `./explain/<slug>.html` (lowercase, hyphens, 2 to 5 words), and replace the demo content part by part. Keep the `:root` tokens and the base CSS unchanged, because the checker compares them with the template. Figure CSS you add goes below the `/* == figures == */` block and uses only `var(--*)` colours.
-6. **Check.** Run `node ${CLAUDE_SKILL_DIR}/scripts/check-explain.mjs explain/<slug>.html`. Fix every FAIL. Treat each WARN as wrong unless you can defend it in one sentence in the final reply.
-7. **Render and probe**, with the recipe below, at 1280 and 390 wide. Open both screenshots and look at them: figure labels legible, nothing colliding, accent only on the subject. Fix the largest problem first, in one batch, then rerun steps 6 and 7. Stop when the checker has no FAIL and the probe returns `"ok": true` at both widths, or after 3 rounds, and report what is left.
-8. **Deliver.** Open the file (`open` on macOS, `xdg-open` on Linux). Reply with the absolute path, the checks you ran with their results, every check you couldn't run as **Not verified** with the reason, and, when the current folder is a git repository whose `.gitignore` doesn't cover `explain/`, one line saying so. Never edit `.gitignore`.
+6. **Newcomer pass.** Read the built page top to bottom as someone who has never met the field, including figure labels, captions and table headers. List every term, acronym, unit and notation (`port`, `RFC`, `cN`, `0x04`, `DE 11`) at its first appearance. Each one must be in the primer, explained in plain words in the same sentence (`a port, the numbered door a service listens on`), or replaced by a plain word. The overview figure comes before the primer, so its labels use plain words only. Fix the page until the list is empty.
+7. **Check.** Run `node ${CLAUDE_SKILL_DIR}/scripts/check-explain.mjs explain/<slug>.html`. Fix every FAIL. Treat each WARN as wrong unless you can defend it in one sentence in the final reply.
+8. **Render and probe**, with the recipe below, at 1280 and 390 wide. Open both screenshots and look at them: figure labels legible, nothing colliding, no label touching its box edge, accent only on the subject. Fix the largest problem first, in one batch, then rerun steps 7 and 8. Stop when the checker has no FAIL and the probe returns `"ok": true` at both widths, or after 3 rounds, and report what is left.
+9. **Deliver.** Open the file (`open` on macOS, `xdg-open` on Linux). Reply with the absolute path, the checks you ran with their results, every check you couldn't run as **Not verified** with the reason, and, when the current folder is a git repository whose `.gitignore` doesn't cover `explain/`, one line saying so. Never edit `.gitignore`.
 
 ### Probe recipe
 
@@ -51,7 +52,7 @@ agent-browser --session explain-<slug> --json eval --stdin < ${CLAUDE_SKILL_DIR}
 agent-browser --session explain-<slug> close
 ```
 
-The result sits at `.data.result`: `{ok, overlaps, overflows, smallText, bigText, hscroll}`. Each finding names the figure and the text. Delete the two screenshots after the last round unless the user asked for them. Without `agent-browser`, report step 7's checks as Not verified; never present an unrendered page as checked.
+The result sits at `.data.result`: `{ok, overlaps, overflows, smallText, bigText, hscroll}`. Each finding names the figure and the text. Delete the two screenshots after the last round unless the user asked for them. Without `agent-browser`, report step 8's checks as Not verified; never present an unrendered page as checked.
 
 ## The page
 
@@ -72,9 +73,9 @@ The template already encodes this order; the checker verifies it.
 - Every paragraph in a mechanism step makes one claim; its figure shows that claim; its caption says in one sentence what to notice.
 - Name real things: identifiers, part names, field names, numbers with units (`300 ms`, `53/udp`, `45 cN`). A vague noun where a real name exists reads as a guess. Join a number and its unit with `&nbsp;` so they never wrap apart.
 - In prose, use at most one accent mark per section, on the subject's name. Values in prose stay ink; the figure is where values carry the accent. Several blue words in a paragraph read as links.
-- A claim you did not read in a source carries `<span class="inferred">`. The reader must be able to tell knowledge from reconstruction.
+- A claim you did not read in a source carries `<span class="inferred">`. The reader must be able to tell knowledge from reconstruction. A ref covers only the sentence it ends; every causal or "why" sentence and every primer definition gets its own ref or the inferred mark.
 - Close on the recipe in words. No code block at the end; code appears only where a step is about that code.
-- Keep prose under 2,500 words. Every paragraph that doesn't move the reader toward the answer goes.
+- Aim for 900 to 1,400 words of prose and 4 or 5 mechanism steps; use 6 or 7 only when the question needs them. Each mechanism paragraph stays under 100 words. A table or byte layout stays only if the question is about that detail. The checker WARNs above 1,600 words.
 - Write without em dashes; use commas, colons or full stops.
 
 ## House rules
@@ -90,6 +91,7 @@ These are the defaults agents produce without this skill, each with what to do i
 | A left-border blockquote "Note" or "Why?" callout | A sentence in the paragraph, or a primer term |
 | A TL;DR or "short version" box at the top | The problem section is the summary |
 | A glossary at the end | The primer before the mechanism |
+| Field jargon left bare because it is the right word (`RFC`, `endpoint descriptor`, `nets positions`) | Keep the word and explain it in the same sentence, or use the plain word |
 | Several hues to tag categories (issuer red, acquirer blue) | Greys and dash patterns tell categories apart; the accent marks the subject |
 | A chart with arrowed axes, a full grid and a legend row | The chart conventions in figures.md: reference lines only at labelled values, inline labels |
 | Every figure hand-placed in SVG | ASCII, timeline and table kinds where they fit; they align by construction |
@@ -116,7 +118,7 @@ These are the defaults agents produce without this skill, each with what to do i
 | `examples/` | Read one file | The first page you build in a session |
 | `assets/template.html` | Copy | Step 5 |
 | `assets/figures.html` | Open in a browser | When a figure kind's snippet in figures.md is unclear |
-| `node scripts/check-explain.mjs` | Run | Step 6 |
-| `agent-browser … eval --stdin < scripts/probe.js` | Run through the recipe | Step 7 |
+| `node scripts/check-explain.mjs` | Run | Step 7 |
+| `agent-browser … eval --stdin < scripts/probe.js` | Run through the recipe | Step 8 |
 
 Needs: `node` 18 or newer for the checker, and the `agent-browser` CLI for step 7 (`npm i -g agent-browser`, then `agent-browser install`). Without either, build the page anyway and report the missing checks as Not verified.

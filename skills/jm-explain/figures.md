@@ -44,6 +44,7 @@ Markup, in this order. `<figure>` takes no `role`.
 - No border, background, shadow, radius or card on the figure. It sits on the paper.
 - Accent only through `.subj`, `[data-subj]` or `.val`, and only on the one thing the paragraph is about. `.fault` (red) only for a real failure.
 - Text: data labels `--mono` 12px original case; chrome labels 11px UPPERCASE `.lbl` (in SVG, write them in capitals).
+- Labels inside a box keep at least 1ch of space to each edge in ASCII, and at least 6px in SVG; size the box from the longest label, not the other way round.
 - Chrome labels (uppercase) never hold identifiers, formulas or units whose case matters (`IPv4`, `m·ẍ`, `ms`, `MiB`). Those go in the data-label style, 12px mono in original case.
 
 ### Hairlines

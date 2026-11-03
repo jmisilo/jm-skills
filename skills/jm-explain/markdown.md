@@ -1,6 +1,6 @@
 # The --md mode
 
-Read this only when the request contains `--md`. The answer goes in the chat as markdown, and no file is written: no `explain/` folder, no HTML, no screenshots. Steps 1 to 3 of the run still apply in full; this file replaces steps 4 to 7.
+Read this only when the request contains `--md`. The answer goes in the chat as markdown, and no file is written: no `explain/` folder, no HTML, no screenshots. Steps 1 to 3 of the run still apply in full; this file replaces steps 4 to 8.
 
 ## Order
 
@@ -35,5 +35,5 @@ checkmark   ████████████░░░░░░░░░░�
 ## Check before sending
 
 - Count the widest line in each fenced block; anything over 72 columns gets narrower labels or a split figure.
-- Every term a step uses appears in `Before you start` or is explained where it first appears.
+- Every term, acronym, unit and notation, including inside figures, appears in `Before you start` or is explained in plain words where it first appears. The overview figure comes before the primer, so its labels are plain words.
 - No code block at the end; the last section is prose.
