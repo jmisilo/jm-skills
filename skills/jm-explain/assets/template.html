@@ -195,8 +195,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig svg text.mut { fill: var(--muted); }
 .fig svg .ln { stroke: var(--ink-2); fill: none; }
 .fig svg .ln-faint { stroke: var(--faint); fill: none; }
-/* drawings (schematic, panel): object outlines a step bolder than the annotations */
-.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part { stroke: var(--ink); stroke-width: 1.25; fill: none; }
+/* drawings (schematic, panel, motion): object outlines a step bolder than the annotations */
+.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part, .fig[data-kind="motion"] svg .part { stroke: var(--ink); stroke-width: 1.25; fill: none; }
 .fig svg .leader { stroke: var(--muted); fill: none; }
 .fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
 .fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
@@ -209,6 +209,7 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
 .fig svg .solid.subj { fill: var(--accent); stroke: none; }
 .fig svg text.subj { fill: var(--accent); stroke: none; }
+.fig svg .part.subj { stroke: var(--accent); }
 
 /* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
 .ascii { container-type: inline-size; font-size: 14px; }
@@ -301,6 +302,42 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 }
 .fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
 .fig-foot > :nth-child(2) { color: var(--muted); }
+
+/* motion: a drawing the reader steps through. Static: every part, .stepno numbers, the full step list.
+   The motion script adds .live: data-at parts turn accent in their steps, .tok travels its path, [data-flow] dashes move */
+.fig svg .tok { fill: var(--accent); stroke: none; }
+.fig svg .tok:not(.on) { display: none; }
+.fig svg [data-flow] { stroke-dasharray: 4 4; }
+.fig svg [data-flow].flowing { animation: motion-flow var(--flow-dur, .8s) linear infinite; }
+@keyframes motion-flow { to { stroke-dashoffset: -16; } }
+.fig svg text.stepno { font-size: 11px; fill: var(--muted); }
+.fig.live svg .stepno, .fig.live svg [data-only]:not(.shown) { display: none; }
+.fig.live > svg:focus-visible { outline: 1px solid var(--accent); outline-offset: 8px; }
+.motion-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 16px; }
+.motion-bar button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: pre;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.motion-bar button:hover { color: var(--ink); }
+.motion-bar button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.motion-count { margin-left: auto; font: 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .06em; color: var(--muted); }
+ol.motion-steps { margin: 16px 0 0; padding: 0; list-style: none; counter-reset: mstep; font: 13px/1.5 var(--sans); color: var(--ink-2); }
+ol.motion-steps > li { position: relative; padding: 2px 0 2px 24px; counter-increment: mstep; }
+ol.motion-steps > li::before { content: counter(mstep); position: absolute; left: 0; top: 2px; font: 11px/19.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.fig.live ol.motion-steps { display: grid; margin-top: 8px; }
+.fig.live ol.motion-steps > li { grid-area: 1 / 1; padding: 0; visibility: hidden; color: var(--ink); }
+.fig.live ol.motion-steps > li::before { content: none; }
+.fig.live ol.motion-steps > li.on { visibility: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .fig svg [data-flow].flowing { animation: none; }
+}
 
 /* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
 @container (max-width: 480px) {
@@ -470,7 +507,7 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
         <line class="ref-line" x1="314.7" y1="28" x2="314.7" y2="172"/>
         <path class="series" d="M44.0 139.0 L51.5 137.5 L59.0 133.7 L66.6 128.4 L74.1 122.2 L81.6 115.6 L89.1 108.9 L96.6 102.3 L104.2 96.0 L111.7 90.0 L119.2 84.5 L126.7 79.4 L134.2 74.7 L141.8 70.5 L149.3 66.8 L156.8 63.4 L164.3 60.4 L171.8 57.7 L179.4 55.4 L186.9 53.4 L194.4 51.6 L201.9 50.0 L209.4 48.6 L217.0 47.4 L224.5 46.4 L232.0 45.5 L239.5 44.7 L247.0 44.0 L254.6 43.5 L262.1 43.0 L269.6 42.5 L277.1 42.2 L284.6 41.9 L292.2 41.6 L299.7 41.4 L307.2 41.2 L314.7 41.0 L322.2 40.8 L329.8 40.7 L337.3 40.6 L344.8 40.5 L352.3 40.4 L359.8 40.4 L367.4 40.3 L374.9 40.3 L382.4 40.2 L389.9 40.2 L397.4 40.2 L405.0 40.1 L412.5 40.1 L420.0 40.1"/>
         <path class="after" d="M314.7 41.3 L322.2 41.1 L329.8 40.9 L337.3 40.8 L344.8 40.7 L352.3 40.6 L359.8 40.5 L367.4 40.4 L374.9 40.4 L382.4 40.3 L389.9 40.3 L397.4 40.2 L405.0 40.2 L412.5 40.2 L420.0 40.1"/>
-        <path class="subj" d="M44.0 172.0 L51.5 170.0 L59.0 164.9 L66.6 157.9 L74.1 149.6 L81.6 140.8 L89.1 131.9 L96.6 123.1 L104.2 114.6 L111.7 106.7 L119.2 99.3 L126.7 92.5 L134.2 86.3 L141.8 80.7 L149.3 75.7 L156.8 71.2 L164.3 67.2 L171.8 63.7 L179.4 60.6 L186.9 57.8 L194.4 55.4 L201.9 53.3 L209.4 51.5 L217.0 49.9 L224.5 48.5 L232.0 47.3 L239.5 46.3 L247.0 45.4 L254.6 44.6 L262.1 44.0 L269.6 43.4 L277.1 42.9 L284.6 42.5 L292.2 42.1 L299.7 41.8 L307.2 41.5 L314.7 41.3" stroke-width="1.5"/>
+        <path class="subj" d="M44.0 172.0 L51.5 170.0 L59.0 164.9 L66.6 157.9 L74.1 149.6 L81.6 140.8 L89.1 131.9 L96.6 123.1 L104.2 114.6 L111.7 106.7 L119.2 99.3 L126.7 92.5 L134.2 86.3 L141.8 80.7 L149.3 75.7 L156.8 71.2 L164.3 67.2 L171.8 63.7 L179.4 60.6 L186.9 57.8 L194.4 55.4 L201.9 53.3 L209.4 51.5 L217.0 49.9 L224.5 48.5 L232.0 47.3 L239.5 46.3 L247.0 45.4 L254.6 44.6 L262.1 44.0 L269.6 43.4 L277.1 42.9 L284.6 42.5 L292.2 42.1 L299.7 41.8 L307.2 41.5 L314.7 41.3"/>
         <text x="36" y="44" text-anchor="end">1</text>
         <text x="36" y="143" text-anchor="end">0.25</text>
         <text x="36" y="176" text-anchor="end">0</text>

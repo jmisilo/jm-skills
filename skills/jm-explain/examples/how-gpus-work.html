@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a GPU works</title>
+<!-- accent: #1f6feb on #fafafa = 4.44:1, under 4.5. Same OKLCH hue (259.7) and chroma (0.202),
+     lightness 0.569 -> 0.555 gives #1a6be6. Relative luminance 0.1645 vs paper 0.9560:
+     (0.9560 + 0.05) / (0.1645 + 0.05) = 4.69:1, passes AA for normal text. -->
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #171717;
+  --ink-2: #525252;
+  --muted: #8f8f8f;
+  --faint: #bdbdbd;
+  --rule: #ebebeb;
+  --well: #efefef;
+  --accent: #1a6be6;
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px;
+  --fig-width: 880px;
+}
+
+/* == base == */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--paper); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font: 15px/1.6 var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: var(--accent-soft); }
+p { margin: 0 0 16px; text-wrap: pretty; }
+a { color: var(--ink); text-decoration: underline 1px var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink-2); }
+b, strong { font-weight: 600; }
+
+/* == page: prose in --measure, figures break out to --fig-width == */
+.page { max-width: calc(var(--fig-width) + 40px); margin: 0 auto; padding: 72px 20px 120px; }
+.page > * > :not(.fig) { max-width: var(--measure); margin-inline: auto; }
+.page > section { margin-top: 64px; }
+.page > [data-part="problem"] { margin-top: 40px; }
+
+/* == prompt header == */
+.prompt {
+  margin-bottom: 0;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  font: 13px/1.6 var(--mono);
+  color: var(--ink-2);
+}
+.prompt .caret { color: var(--muted); }
+.prompt b { color: var(--ink); }
+.meta {
+  margin-top: 4px;
+  padding: 0 0 16px 15.6px; /* 2ch of the 13px prompt */
+  border-bottom: 1px solid var(--rule);
+  font: 11px/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+/* == headings == */
+h1 { margin: 0 0 16px; font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
+.sec { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.sec::after { content: ""; order: 1; flex: 1; border-top: 1px solid var(--rule); }
+.sec .idx { order: 2; }
+.idx, .label {
+  font: 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* == inline == */
+code {
+  padding: .05em .25em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: .9em;
+}
+dfn { font-style: normal; font-weight: 600; }
+mark { background: none; color: inherit; }
+.subj, [data-subj], .val { color: inherit; font-weight: 600; background: none; }
+.fig .subj, .fig [data-subj], .fig .val { color: var(--accent); font-weight: inherit; }
+.val { font-variant-numeric: tabular-nums; }
+.inferred { text-decoration: none; }
+.inferred::after { content: "~"; font: 10px var(--mono); color: var(--muted); vertical-align: super; margin-left: 1px; }
+.fault { color: var(--fault); }
+sup.ref { font: 10px/0 var(--mono); vertical-align: super; margin-left: 1px; }
+sup.ref a { padding: 0 1px; color: var(--ink-2); text-decoration: none; }
+sup.ref a:hover { color: var(--ink); }
+.lead { font-weight: 600; }
+
+/* == primer: term | definition rows == */
+dl.terms {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  margin-block: 0;
+  border-bottom: 1px solid var(--rule);
+}
+dl.terms dt, dl.terms dd { padding: 12px 0; border-top: 1px solid var(--rule); }
+dl.terms dt {
+  padding-right: 24px;
+  font: 11px/24px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+}
+dl.terms dd { margin: 0; color: var(--ink); }
+
+/* == numbered steps: faint numerals, bold lead-in, grey rest == */
+ol.steps { margin: 0 0 24px; padding: 0; list-style: none; counter-reset: step; border-bottom: 1px solid var(--rule); }
+ol.steps > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  counter-increment: step;
+}
+ol.steps > li::before {
+  content: counter(step, decimal-leading-zero);
+  font: 12px/24px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+ol.steps > li > span > b:first-child { color: var(--ink); }
+
+/* == sources == */
+ol.sources { margin: 0; padding: 0; list-style: none; counter-reset: src; font-size: 14px; }
+ol.sources > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 8px 0;
+  color: var(--ink-2);
+  counter-increment: src;
+}
+ol.sources > li::before {
+  content: counter(src, decimal-leading-zero);
+  font: 12px/22px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+ol.sources .label { display: block; margin-top: 4px; }
+ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink); }
+.key { margin-top: 24px; }
+
+@media (max-width: 480px) {
+  .page { padding-top: 40px; }
+  dl.terms { grid-template-columns: 1fr; }
+  dl.terms dt { padding-bottom: 4px; }
+  dl.terms dd { padding-top: 0; border-top: 0; }
+  ol.steps > li, ol.sources > li { grid-template-columns: 28px 1fr; }
+}
+
+/* == figures == */
+/* Figures sit on the paper: no card, border, fill or shadow. Default width is --measure; .wide breaks out to --fig-width. */
+.fig { max-width: var(--measure); margin: 40px auto; padding: 0; border: 0; background: none; container-type: inline-size; }
+.fig.wide { max-width: var(--fig-width); }
+.fig-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.fig-tag, .fig-hint, .fig-src, .fig-name {
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.fig-name { margin-right: auto; color: var(--ink-2); }
+.fig-hint { text-align: right; }
+.fig figcaption {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--faint);
+  font: 13px/1.5 var(--sans);
+  color: var(--ink-2);
+}
+.fig-src { display: block; margin-top: 4px; }
+
+/* svg: drawn at real size (width = viewBox width), never scaled up, centred; 1px strokes at any scale */
+.fig svg { overflow: visible; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig > svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+.fig svg text { font: 12px var(--mono); font-variant-numeric: tabular-nums; fill: var(--ink-2); stroke: none; }
+.fig svg text.lbl { font-size: 11px; letter-spacing: .06em; }
+.fig svg text.mut { fill: var(--muted); }
+.fig svg .ln { stroke: var(--ink-2); fill: none; }
+.fig svg .ln-faint { stroke: var(--faint); fill: none; }
+/* drawings (schematic, panel, motion): object outlines a step bolder than the annotations */
+.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part, .fig[data-kind="motion"] svg .part { stroke: var(--ink); stroke-width: 1.25; fill: none; }
+.fig svg .leader { stroke: var(--muted); fill: none; }
+.fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
+.fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .dash { stroke: var(--muted); stroke-dasharray: 2 4; fill: none; }
+.fig svg .solid { fill: var(--ink-2); stroke: none; }
+.fig svg .ref-line { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .series { stroke: var(--ink-2); fill: none; }
+.fig svg .after { stroke: var(--muted); fill: none; }
+.fig svg .subj { stroke: var(--accent); fill: none; }
+.fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
+.fig svg .solid.subj { fill: var(--accent); stroke: none; }
+.fig svg text.subj { fill: var(--accent); stroke: none; }
+.fig svg .part.subj { stroke: var(--accent); }
+
+/* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
+.ascii { container-type: inline-size; font-size: 14px; }
+.ascii pre {
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)));
+  line-height: 1.2;
+  color: var(--ink-2);
+  user-select: none;
+}
+
+/* timeline: label column + track, positions as % */
+.tl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 14px;
+  align-items: center;
+  font: 12px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.tl-axis, .tl-bracket, .tl-track { position: relative; }
+.tl-axis { height: 14px; }
+.tl-axis span { position: absolute; left: var(--at); transform: translateX(-50%); white-space: nowrap; }
+.tl-axis span:first-child { transform: none; }
+.tl-axis span:last-child { transform: translateX(-100%); }
+.tl-bracket { height: 8px; }
+.tl-seg { position: absolute; left: var(--a); width: calc(var(--b) - var(--a)); bottom: 0; height: 8px; border-bottom: 1px solid var(--faint); }
+.tl-tick { position: absolute; left: var(--at); bottom: 0; width: 1px; height: 8px; background: var(--faint); }
+.tl-tick:last-child { margin-left: -1px; }
+.tl-track { height: 8px; background: var(--well); }
+.tl-bar { position: absolute; top: 0; bottom: 0; left: var(--a); width: calc(var(--b) - var(--a)); background: var(--ink-2); }
+.tl-track[data-subj] .tl-bar { background: var(--accent); }
+
+/* stack: one hairline block per layer, top of the stack first */
+.stack { display: grid; gap: 4px; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.stack > div { display: grid; grid-template-columns: 9ch 1fr auto; gap: 16px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--faint); }
+.stack > div > :first-child { color: var(--ink); }
+.stack > div > :last-child { text-align: right; }
+.stack > [data-subj] { border-color: var(--accent); }
+
+/* units: one square per unit, key underneath */
+.units { display: grid; gap: 12px; justify-items: center; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.units-grid { display: grid; grid-template-columns: repeat(var(--per-row, 20), 12px); gap: 4px; }
+.units-grid i, .units-key i { display: block; width: 12px; height: 12px; background: var(--well); }
+.units-grid .on, .units-key .on { background: var(--ink-2); }
+.units-grid .subj, .units-key .subj { background: var(--accent); }
+.units-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.units-key span { display: inline-flex; align-items: center; gap: 8px; }
+.units-key i { width: 8px; height: 8px; }
+
+/* table: semantic table, hairline rows, --well header row */
+.fig table { width: 100%; border-collapse: collapse; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.fig th, .fig td { padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.fig th { font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; background: var(--well); }
+.fig th:first-child, .fig td:first-child { padding-left: 8px; }
+.fig .num { text-align: right; }
+
+/* panel: tag line, code with live values, small schematic, chart, footer with formula and readouts */
+.panel { display: grid; grid-template-columns: 1fr auto; gap: 24px 32px; align-items: start; }
+.panel-code { font: 13px/1.85 var(--mono); color: var(--ink-2); counter-reset: ln; }
+.panel-code > div { white-space: pre; counter-increment: ln; }
+.panel-code > div::before { content: counter(ln); display: inline-block; width: 3ch; color: var(--faint); }
+.panel-code b { font-weight: 600; color: var(--ink); }
+.panel-code .c { color: var(--muted); }
+.panel-code [data-param] { cursor: ew-resize; touch-action: none; border-radius: 2px; }
+.panel-code [data-param]:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.plot { grid-column: 1 / -1; position: relative; height: 180px; margin: 8px 0 24px 3ch; font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.plot > span { position: absolute; white-space: nowrap; }
+.plot .y { right: calc(100% + 1ch); top: var(--y); transform: translateY(-50%); }
+.plot .x { top: calc(100% + 10px); left: var(--x); transform: translateX(var(--tx, -50%)); }
+.plot .mark { left: var(--x); top: -4px; margin-left: 6px; }
+.plot .legend { right: 0; bottom: 8px; color: var(--muted); }
+.fig-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--faint);
+  font: 12px/1.8 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
+.fig-foot > :nth-child(2) { color: var(--muted); }
+
+/* motion: a drawing the reader steps through. Static: every part, .stepno numbers, the full step list.
+   The motion script adds .live: data-at parts turn accent in their steps, .tok travels its path, [data-flow] dashes move */
+.fig svg .tok { fill: var(--accent); stroke: none; }
+.fig svg .tok:not(.on) { display: none; }
+.fig svg [data-flow] { stroke-dasharray: 4 4; }
+.fig svg [data-flow].flowing { animation: motion-flow var(--flow-dur, .8s) linear infinite; }
+@keyframes motion-flow { to { stroke-dashoffset: -16; } }
+.fig svg text.stepno { font-size: 11px; fill: var(--muted); }
+.fig.live svg .stepno, .fig.live svg [data-only]:not(.shown) { display: none; }
+.fig.live > svg:focus-visible { outline: 1px solid var(--accent); outline-offset: 8px; }
+.motion-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 16px; }
+.motion-bar button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: pre;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.motion-bar button:hover { color: var(--ink); }
+.motion-bar button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.motion-count { margin-left: auto; font: 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .06em; color: var(--muted); }
+ol.motion-steps { margin: 16px 0 0; padding: 0; list-style: none; counter-reset: mstep; font: 13px/1.5 var(--sans); color: var(--ink-2); }
+ol.motion-steps > li { position: relative; padding: 2px 0 2px 24px; counter-increment: mstep; }
+ol.motion-steps > li::before { content: counter(mstep); position: absolute; left: 0; top: 2px; font: 11px/19.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.fig.live ol.motion-steps { display: grid; margin-top: 8px; }
+.fig.live ol.motion-steps > li { grid-area: 1 / 1; padding: 0; visibility: hidden; color: var(--ink); }
+.fig.live ol.motion-steps > li::before { content: none; }
+.fig.live ol.motion-steps > li.on { visibility: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .fig svg [data-flow].flowing { animation: none; }
+}
+
+/* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
+@container (max-width: 480px) {
+  .panel { grid-template-columns: 1fr; }
+  .panel > svg { justify-self: center; }
+  .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
+  .fig th, .fig td { padding-inline: 6px; }
+}
+
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header data-part="prompt">
+    <p class="prompt"><span class="caret">&gt;</span> <b>/jm-explain</b> how gpus work</p>
+    <p class="meta">10 figures · 11 sources · 3 Nov 2026</p>
+  </header>
+
+  <section data-part="problem">
+    <h1>How a GPU works</h1>
+    <p>A <mark class="subj">GPU</mark>, or graphics processing unit, is a chip built to run thousands of threads in parallel, giving up single-thread speed to get far more total work done per second.<sup class="ref"><a href="#s1">1</a></sup> It began as the part of a computer that draws images, and the same design is now used to train and run AI models.<sup class="ref"><a href="#s10">10</a></sup></p>
+    <p>A CPU is built to finish one sequence of instructions as fast as possible, so it spends many of its transistors on caches, small fast memories that keep recent data close, and on control logic.<sup class="ref"><a href="#s1">1</a></sup> Drawing a frame or multiplying two large matrices, grids of numbers, is a different problem: the same few steps repeated over millions of independent items, where no single item has to finish early. A GPU spends its transistors on arithmetic instead.<sup class="ref"><a href="#s1">1</a></sup> An H100, NVIDIA's datacenter GPU, holds up to 2,048 threads in each of its 132 cores, over 250,000 at once.<sup class="ref"><a href="#s4">4</a></sup></p>
+    <p>Work arrives from the CPU over PCI Express (PCIe), the link between the motherboard and the card, and a front end on the GPU reads the commands.<sup class="ref"><a href="#s5">5</a></sup> It hands blocks of threads to the GPU's cores, which NVIDIA calls streaming multiprocessors, or SMs. The SMs share one large cache, the L2, and the GPU's own memory, VRAM, a set of memory chips on the card that the cache reads at 3 terabytes per second (TB/s).<sup class="ref"><a href="#s1">1</a></sup><sup class="ref"><a href="#s10">10</a></sup> The steps below follow work down that path.</p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">H100 · work flows down</span></div>
+      <svg class="grid" role="img" aria-label="Overview of a GPU: the CPU sends commands over PCIe to the GPU's front end, which hands blocks of threads to 132 SMs, the GPU's cores; the SMs share a 50 MB L2 cache, which reads 80 GB of VRAM at 3 TB/s." viewBox="0 0 411.6 319.2" width="411.6" height="319.2">
+<path class="ln" d="M4.2 8.4H105"/>
+<path class="ln" d="M197.4 8.4H315"/>
+<path class="ln" d="M109.2 25.2H180.6"/>
+<path class="ln" d="M4.2 42H105"/>
+<path class="ln" d="M197.4 42H315"/>
+<path class="ln" d="M4.2 92.4H399"/>
+<path class="ln" d="M21 109.2H63"/>
+<path class="ln" d="M79.8 109.2H121.8"/>
+<path class="ln" d="M138.6 109.2H180.6"/>
+<path class="ln" d="M197.4 109.2H239.4"/>
+<path class="ln" d="M306.6 109.2H348.6"/>
+<path class="ln" d="M21 142.8H63"/>
+<path class="ln" d="M79.8 142.8H121.8"/>
+<path class="ln" d="M138.6 142.8H180.6"/>
+<path class="ln" d="M197.4 142.8H239.4"/>
+<path class="ln" d="M306.6 142.8H348.6"/>
+<path class="ln" d="M4.2 176.4H399"/>
+<path class="ln" d="M138.6 210H281.4"/>
+<path class="ln" d="M138.6 243.6H281.4"/>
+<path class="ln" d="M138.6 277.2H281.4"/>
+<path class="ln" d="M138.6 310.8H281.4"/>
+<path class="ln" d="M4.2 8.4V42"/>
+<path class="ln" d="M4.2 92.4V176.4"/>
+<path class="ln" d="M21 109.2V142.8"/>
+<path class="ln" d="M63 109.2V142.8"/>
+<path class="ln" d="M79.8 109.2V142.8"/>
+<path class="ln" d="M105 8.4V42"/>
+<path class="ln" d="M121.8 109.2V142.8"/>
+<path class="ln" d="M138.6 109.2V142.8"/>
+<path class="ln" d="M138.6 210V243.6"/>
+<path class="ln" d="M138.6 277.2V310.8"/>
+<path class="ln" d="M180.6 109.2V142.8"/>
+<path class="ln" d="M197.4 8.4V42"/>
+<path class="ln" d="M197.4 109.2V142.8"/>
+<path class="ln" d="M197.4 176.4V210"/>
+<path class="ln" d="M197.4 243.6V277.2"/>
+<path class="ln" d="M239.4 109.2V142.8"/>
+<path class="ln" d="M256.2 42V75.6"/>
+<path class="ln" d="M281.4 210V243.6"/>
+<path class="ln" d="M281.4 277.2V310.8"/>
+<path class="ln" d="M306.6 109.2V142.8"/>
+<path class="ln" d="M315 8.4V42"/>
+<path class="ln" d="M348.6 109.2V142.8"/>
+<path class="ln" d="M399 92.4V176.4"/>
+<path class="hd" d="M184.4 25.2 L178.8 22 L178.8 28.4 Z"/>
+<path class="hd" d="M256.2 83.6 L253 78 L259.4 78 Z"/>
+<text class="tx" x="117.6" y="8.4" textLength="67.2">commands</text>
+<text class="tx" x="16.8" y="25.2" textLength="75.6">CPU + RAM</text>
+<text class="tx" x="218.4" y="25.2" textLength="75.6">front end</text>
+<text class="tx" x="134.4" y="42" textLength="33.6">PCIe</text>
+<text class="tx" x="268.8" y="58.8" textLength="142.8">blocks of threads</text>
+<text class="tx subj" x="33.6" y="126" textLength="16.8">SM</text>
+<text class="tx subj" x="92.4" y="126" textLength="16.8">SM</text>
+<text class="tx subj" x="151.2" y="126" textLength="16.8">SM</text>
+<text class="tx subj" x="210" y="126" textLength="16.8">SM</text>
+<text class="tx" x="260.4" y="126" textLength="25.2">···</text>
+<text class="tx subj" x="319.2" y="126" textLength="16.8">SM</text>
+<text class="tx" x="16.8" y="159.6" textLength="201.6">132 SMs, the GPU's cores</text>
+<text class="tx" x="151.2" y="226.8" textLength="117.6">L2 cache 50 MB</text>
+<text class="tx" x="210" y="260.4" textLength="50.4">3 TB/s</text>
+<text class="tx" x="151.2" y="294" textLength="33.6">VRAM</text>
+<text class="tx" x="226.8" y="294" textLength="42">80 GB</text>
+</svg>
+      <figcaption>The CPU only queues commands. Every calculation happens in the row of SMs, and all 132 of them draw on one cache and one pool of memory.<span class="fig-src">Source: NVIDIA, Hopper architecture in depth</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="primer">
+    <header class="sec"><h2>Before you start</h2><span class="idx">00</span></header>
+    <dl class="terms">
+      <dt>Kernel</dt>
+      <dd>The program a GPU runs. It is written as if for one thread and launched over a grid of thousands or millions of threads.<sup class="ref"><a href="#s1">1</a></sup></dd>
+      <dt>Thread</dt>
+      <dd>One run of the kernel on one piece of data. Each thread keeps its variables in registers, the small private storage slots right beside the math units.<sup class="ref"><a href="#s1">1</a></sup></dd>
+      <dt>Warp</dt>
+      <dd>A group of 32 threads that the hardware schedules and runs together, one instruction for all 32 at a time.<sup class="ref"><a href="#s1">1</a></sup></dd>
+      <dt>SM</dt>
+      <dd>Streaming multiprocessor: one of the GPU's cores, with its own schedulers, registers and math units. Each is much weaker than a CPU core; there are many of them.<sup class="ref"><a href="#s4">4</a></sup></dd>
+      <dt>Latency, throughput</dt>
+      <dd>Latency is how long one operation takes; throughput is how many finish per second. CPUs are built for the first, GPUs for the second.<sup class="ref"><a href="#s1">1</a></sup></dd>
+      <dt>Bandwidth</dt>
+      <dd>How many bytes per second memory can deliver. A program that does little math per byte it reads runs at the speed of its bandwidth, not of its arithmetic.<sup class="ref"><a href="#s8">8</a></sup></dd>
+    </dl>
+  </section>
+
+  <section data-part="mechanism" data-step="1">
+    <header class="sec"><h2>The CPU queues commands, the GPU reads them</h2><span class="idx">01</span></header>
+    <p>A program never runs code on the GPU directly. It calls a graphics or compute library, and the driver turns each call into hardware commands written into a command buffer in memory.<sup class="ref"><a href="#s5">5</a></sup> The driver then updates a counter on the GPU that marks where the new commands end, and the GPU's front end, the <mark class="subj">command processor</mark>, fetches the new commands across PCIe and starts the work.<sup class="ref"><a href="#s5">5</a></sup> Input data crosses the same link, copied from the CPU's RAM into VRAM before the kernel runs.<sup class="ref"><a href="#s2">2</a></sup></p>
+    <p>The GPU is a separate processor with its own memory, so the two sides talk through a queue rather than by calling each other. Drivers run ahead on purpose: a graphics driver can be up to three frames ahead of the GPU, so the GPU always has work waiting.<sup class="ref"><a href="#s5">5</a></sup> <span class="inferred">The CPU returns from a launch at once and prepares the next batch.</span></p>
+    <p>The link is the narrow part. PCIe version 5 moves 64&nbsp;GB/s each way, against 3,000&nbsp;GB/s between an H100 and its own memory, so the link is about 47 times slower (3,000 / 64).<sup class="ref"><a href="#s3">3</a></sup> NVIDIA's own guide ranks cutting these transfers as a top priority, even if that means running steps on the GPU that are no faster there.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">A program that copies data over for one small calculation, or waits for each result before sending the next command, spends its time on the bus and in the queue rather than computing.</span></p>
+
+    <figure class="fig" data-kind="sequence">
+      <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">one kernel launch · time runs down</span></div>
+      <svg role="img" aria-label="One kernel launch: the program asks the driver to launch; the driver copies inputs over PCIe into VRAM and writes commands for the front end; the front end hands blocks of threads to the cores; the cores read and write VRAM; the results go back over PCIe to the program." width="420" height="236" viewBox="0 0 420 236">
+        <text class="lbl" x="34" y="12" text-anchor="middle">PROGRAM</text><text class="lbl" x="120" y="12" text-anchor="middle">DRIVER</text><text class="lbl" x="210" y="12" text-anchor="middle">FRONT END</text><text class="lbl" x="300" y="12" text-anchor="middle">CORES</text><text class="lbl" x="390" y="12" text-anchor="middle">VRAM</text>
+        <path class="life" d="M30 22 V232 M120 22 V232 M210 22 V232 M300 22 V232 M390 22 V232"/>
+        <line class="ln" x1="30" y1="50" x2="114" y2="50"/><path class="solid" d="M120 50 l-6 -3 v6 z"/><text x="75" y="44" text-anchor="middle">launch</text>
+        <line class="ln" x1="120" y1="84" x2="384" y2="84"/><path class="solid" d="M390 84 l-6 -3 v6 z"/><text x="255" y="78" text-anchor="middle">inputs over PCIe</text>
+        <line class="ln" x1="120" y1="118" x2="204" y2="118"/><path class="solid" d="M210 118 l-6 -3 v6 z"/><text x="165" y="112" text-anchor="middle">commands</text>
+        <line class="ln subj" x1="210" y1="152" x2="294" y2="152"/><path class="solid subj" d="M300 152 l-6 -3 v6 z"/><text class="subj" x="255" y="146" text-anchor="middle">blocks</text>
+        <line class="ln" x1="300" y1="186" x2="384" y2="186"/><path class="solid" d="M390 186 l-6 -3 v6 z"/><text x="345" y="180" text-anchor="middle">read, write</text>
+        <line class="ln" x1="390" y1="220" x2="36" y2="220"/><path class="solid" d="M30 220 l6 -3 v6 z"/><text x="210" y="214" text-anchor="middle">results over PCIe</text>
+      </svg>
+      <figcaption>The program only queues work. Everything right of the driver happens on the card, and the two trips across PCIe are the slowest hops.<span class="fig-src">Source: Giesen, A trip through the graphics pipeline, part 1 · CUDA Best Practices Guide</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="2">
+    <header class="sec"><h2>A grid of blocks spreads across the SMs</h2><span class="idx">02</span></header>
+    <p>A kernel launch names a grid: how many blocks of threads, and how many threads in each block.<sup class="ref"><a href="#s1">1</a></sup> The front end hands whole <mark class="subj">blocks</mark> to SMs that have room, and inside the SM each block is cut into warps of 32.<sup class="ref"><a href="#s1">1</a></sup> A grid can hold millions of blocks while the GPU has tens or hundreds of SMs, so most blocks wait their turn.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p>The rule that makes this work is that blocks do not depend on each other: the programming model requires that they can run in any order, side by side or one after another.<sup class="ref"><a href="#s1">1</a></sup> That is why the same program runs on a GPU with one SM or thousands; a bigger GPU just works through the queue faster.<sup class="ref"><a href="#s1">1</a></sup> Threads inside one block can cooperate through shared memory, a scratchpad on their SM that only that block's threads can see.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p>Too few blocks leaves SMs idle: a grid of 100 blocks on a 132-SM H100 can use at most 100 SMs, 76% of the chip (100 / 132).<sup class="ref"><a href="#s3">3</a></sup> <span class="inferred">The last round matters too: with one block per SM, 133 equal blocks take two full rounds, and in the second one SM works while 131 wait.</span> And because there is no guarantee about when other blocks run, a block cannot wait on another block's results mid-kernel.<sup class="ref"><a href="#s1">1</a></sup></p>
+
+    <figure class="fig" data-kind="tree">
+      <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">one launch · illustrative sizes</span></div>
+      <svg class="grid" role="img" aria-label="A grid of 4,096 blocks; block 0 has 256 threads and runs on one SM, cut into 8 warps of 32 threads; block 1 goes to the next SM with room; the other 4,094 follow in any order." viewBox="0 0 386.4 117.6" width="386.4" height="117.6">
+<path class="ln" d="M4.2 25.2H16.8"/>
+<path class="ln" d="M29.4 42H42"/>
+<path class="ln" d="M29.4 58.8H42"/>
+<path class="ln" d="M29.4 75.6H42"/>
+<path class="ln" d="M4.2 92.4H16.8"/>
+<path class="ln" d="M4.2 109.2H16.8"/>
+<path class="ln" d="M4.2 16.8V109.2"/>
+<path class="ln" d="M29.4 33.6V75.6"/>
+<text class="tx" x="0" y="8.4" textLength="33.6">grid</text>
+<text class="tx" x="126" y="8.4" textLength="260.4">one kernel launch, 4,096 blocks</text>
+<text class="tx subj" x="25.2" y="25.2" textLength="58.8">block 0</text>
+<text class="tx" x="126" y="25.2" textLength="184.8">256 threads, on one SM</text>
+<text class="tx" x="50.4" y="42" textLength="50.4">warp 0</text>
+<text class="tx" x="126" y="42" textLength="126">threads 0 to 31</text>
+<text class="tx" x="50.4" y="58.8" textLength="50.4">warp 1</text>
+<text class="tx" x="126" y="58.8" textLength="134.4">threads 32 to 63</text>
+<text class="tx" x="50.4" y="75.6" textLength="8.4">…</text>
+<text class="tx" x="126" y="75.6" textLength="117.6">8 warps in all</text>
+<text class="tx" x="25.2" y="92.4" textLength="58.8">block 1</text>
+<text class="tx" x="126" y="92.4" textLength="176.4">the next SM with room</text>
+<text class="tx" x="25.2" y="109.2" textLength="8.4">…</text>
+<text class="tx" x="126" y="109.2" textLength="201.6">4,094 more, in any order</text>
+</svg>
+      <figcaption>The block is the unit the front end hands out. Warps are how the SM runs it, and the order of blocks is never promised.<span class="fig-src">Source: CUDA Programming Guide, section 1.2</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="3">
+    <header class="sec"><h2>An SM spends its area on math lanes</h2><span class="idx">03</span></header>
+    <p>An H100 <mark class="subj">SM</mark> has 128 FP32 lanes, units that each do one operation on a 32-bit decimal number per clock, and four warp schedulers.<sup class="ref"><a href="#s3">3</a></sup><sup class="ref"><a href="#s4">4</a></sup> A clock is one tick of the chip's timing signal, about a nanosecond.<sup class="ref"><a href="#s4">4</a></sup> So the SM works as four quarters: each scheduler issues one instruction for one warp per clock to its 32 lanes (128 / 4).<sup class="ref"><a href="#s4">4</a></sup> The SM also holds a 256&nbsp;KB register file, the bank that holds every thread's registers, 256&nbsp;KB of fast memory that serves as its own cache and as shared memory, and four tensor cores, matrix units that step 8 covers.<sup class="ref"><a href="#s3">3</a></sup></p>
+    <p>A CPU core spends much of its area on caches and on control logic that predicts branches and reorders instructions, so that one thread runs fast.<sup class="ref"><a href="#s1">1</a></sup> An SM keeps little of that. <span class="inferred">A warp runs its instructions in order, and when it stalls the SM does not try to work around the stall; it runs a different warp.</span> The saved area goes to math lanes and to a register file big enough to hold every resident thread's variables at once, 65,536 registers of 4 bytes (256&nbsp;KB / 4&nbsp;B).<sup class="ref"><a href="#s3">3</a></sup> The bet is that many weak cores beat a few strong ones whenever the work splits into many independent pieces.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p><span class="inferred">The bet loses on serial work. One thread on an SM is far slower than on a CPU core, so code that cannot be split, such as following a linked list or parsing a file one character at a time, belongs on the CPU.</span> The register file also caps how many threads fit: 65,536 registers over 2,048 threads is 32 registers each (65,536 / 2,048).<sup class="ref"><a href="#s3">3</a></sup><sup class="ref"><a href="#s4">4</a></sup> A kernel that needs more per thread fits fewer threads on each SM, and step 5 shows why fewer threads means slower.<sup class="ref"><a href="#s2">2</a></sup></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">one H100 SM · not to scale</span></div>
+      <svg class="grid" role="img" aria-label="One H100 SM: four quarters, each with a warp scheduler, 64 KB of registers, 32 FP32 math lanes and one tensor core; all four share 256 KB of L1 cache and shared memory." viewBox="0 0 403.2 201.6" width="403.2" height="201.6">
+<path class="ln" d="M4.2 8.4H399"/>
+<path class="ln" d="M21 25.2H189"/>
+<path class="ln" d="M214.2 25.2H382.2"/>
+<path class="ln" d="M21 109.2H189"/>
+<path class="ln" d="M214.2 109.2H382.2"/>
+<path class="ln" d="M21 142.8H382.2"/>
+<path class="ln" d="M21 176.4H382.2"/>
+<path class="ln" d="M4.2 193.2H399"/>
+<path class="ln" d="M4.2 8.4V193.2"/>
+<path class="ln" d="M21 25.2V109.2"/>
+<path class="ln" d="M21 142.8V176.4"/>
+<path class="ln" d="M189 25.2V109.2"/>
+<path class="ln" d="M214.2 25.2V109.2"/>
+<path class="ln" d="M382.2 25.2V109.2"/>
+<path class="ln" d="M382.2 142.8V176.4"/>
+<path class="ln" d="M399 8.4V193.2"/>
+<text class="tx" x="33.6" y="42" textLength="117.6">warp scheduler</text>
+<text class="tx" x="226.8" y="42" textLength="117.6">warp scheduler</text>
+<text class="tx" x="33.6" y="58.8" textLength="75.6">registers</text>
+<text class="tx" x="134.4" y="58.8" textLength="42">64 KB</text>
+<text class="tx" x="226.8" y="58.8" textLength="75.6">registers</text>
+<text class="tx" x="327.6" y="58.8" textLength="42">64 KB</text>
+<text class="tx subj" x="33.6" y="75.6" textLength="109.2">32 FP32 lanes</text>
+<text class="tx" x="226.8" y="75.6" textLength="109.2">32 FP32 lanes</text>
+<text class="tx" x="33.6" y="92.4" textLength="109.2">1 tensor core</text>
+<text class="tx" x="226.8" y="92.4" textLength="109.2">1 tensor core</text>
+<text class="tx" x="33.6" y="126" textLength="226.8">+ 2 more quarters, the same</text>
+<text class="tx" x="33.6" y="159.6" textLength="201.6">L1 cache + shared memory</text>
+<text class="tx" x="319.2" y="159.6" textLength="50.4">256 KB</text>
+</svg>
+      <figcaption>Almost everything in an SM is lanes and the registers that feed them. There is one scheduler per 32 lanes, and no machinery for speeding up a single thread.<span class="fig-src">Source: NVIDIA, Hopper architecture in depth · Modal GPU Glossary</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="4">
+    <header class="sec"><h2>A warp runs 32 threads in lockstep</h2><span class="idx">04</span></header>
+    <p>NVIDIA calls the model SIMT, single instruction, multiple threads. Each SM creates, schedules and runs threads in <mark class="subj">warps</mark> of 32, and the 32 threads of a warp carry out each instruction together, each on its own data in its own registers.<sup class="ref"><a href="#s1">1</a></sup> To the programmer every thread still looks independent: it has its own variables and can take its own branches.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p><span class="inferred">Fetching, decoding and scheduling an instruction costs area and power, and sharing that cost across 32 lanes is what lets an SM afford so many lanes.</span> The work usually fits the shape: neighbouring pixels of one triangle run the same small program on similar data, and GPUs shade pixels in groups of 16 to 64 for exactly that reason.<sup class="ref"><a href="#s5">5</a></sup></p>
+    <p>It breaks when threads of one warp disagree at a branch. The warp then runs each path that any of its threads took, one after the other, with the threads not on that path switched off.<sup class="ref"><a href="#s1">1</a></sup> NVIDIA's guide warns that this divergence can significantly cut throughput, because it adds to the instructions the warp must execute.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">An if and else split 16 and 16 runs both halves at half the lanes; a branch with 32 different outcomes can run 32 times slower. Programs avoid it by arranging the data so whole warps take the same path.</span></p>
+
+    <figure class="fig" data-kind="timeline">
+      <div class="fig-head"><span class="fig-tag">FIG. 5</span><span class="fig-hint">one warp · if and else split 16 and 16</span></div>
+      <div class="tl" role="img" aria-label="Timeline of one warp at a branch: all 32 threads run for 2 issue slots, lanes 0 to 15 run the if path from slot 2 to 5, then lanes 16 to 31 run the else path from slot 5 to 8, then all 32 run together again from slot 8 to 10.">
+        <span></span>
+        <div class="tl-axis"><span style="--at:0%">0</span><span style="--at:20%">2</span><span style="--at:50%">5</span><span style="--at:100%">10 slots</span></div>
+        <span></span>
+        <div class="tl-bracket"><span class="tl-seg" style="--a:0%;--b:100%"></span><span class="tl-tick" style="--at:0%"></span><span class="tl-tick" style="--at:20%"></span><span class="tl-tick" style="--at:50%"></span><span class="tl-tick" style="--at:80%"></span><span class="tl-tick" style="--at:100%"></span></div>
+        <span>before, all 32</span><div class="tl-track"><span class="tl-bar" style="--a:0%;--b:20%"></span></div>
+        <span>if, lanes 0 to 15</span><div class="tl-track"><span class="tl-bar" style="--a:20%;--b:50%"></span></div>
+        <span class="subj">else, lanes 16 to 31</span><div class="tl-track" data-subj><span class="tl-bar" style="--a:50%;--b:80%"></span></div>
+        <span>after, all 32</span><div class="tl-track"><span class="tl-bar" style="--a:80%;--b:100%"></span></div>
+      </div>
+      <figcaption>The else path waits for the if path to finish, and during each one half the lanes do nothing. The branch costs both paths' time.<span class="fig-src">Source: illustrative, from CUDA Programming Guide, section 3.2.2.1</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="5">
+    <header class="sec"><h2>The scheduler hides waiting by switching warps</h2><span class="idx">05</span></header>
+    <p>Reading from VRAM takes hundreds of clock cycles, while an arithmetic instruction takes about 4.<sup class="ref"><a href="#s2">2</a></sup> A CPU fights that delay with large caches that keep data close.<sup class="ref"><a href="#s4">4</a></sup> An SM does something simpler: on every clock, each <mark class="subj">warp scheduler</mark> picks one of its warps whose next instruction has its inputs ready, and issues that.<sup class="ref"><a href="#s1">1</a></sup> A warp waiting on memory is simply not picked.</p>
+    <p>Switching costs nothing because nothing moves. Every resident warp's registers and position in the program stay on the chip for the warp's whole life, so the scheduler can change warps from one clock to the next without saving or restoring anything.<sup class="ref"><a href="#s1">1</a></sup> A CPU thread switch takes a few hundred to a few thousand cycles.<sup class="ref"><a href="#s4">4</a></sup> This is what the huge register file pays for: up to 64 warps per SM, 16 per scheduler (64 / 4), all ready to run on any clock.<sup class="ref"><a href="#s4">4</a></sup></p>
+    <p>The trick needs enough warps. <span class="inferred">With 16 warps per scheduler, some warp is almost always ready; cut that to a few, because each thread uses too many registers or each block too much shared memory, and all of them can be waiting at once while the lanes idle.</span> NVIDIA calls the share of possible warps that are actually resident occupancy, and notes that low occupancy always hurts the ability to hide memory latency.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">More is not always better: once the waiting is covered, extra warps add nothing.</span></p>
+
+    <figure class="fig" data-kind="motion" data-interactive>
+      <div class="fig-head"><span class="fig-tag">FIG. 6</span><span class="fig-name">[ warp scheduler ]</span><span class="fig-hint" data-hint>4 of 16 warps · 6 steps</span></div>
+      <svg role="img" aria-label="One warp scheduler with four warps: warp 0 issues a load and waits; the scheduler issues warp 1 on the next clock; warp 2 issues a load and waits; warp 3 keeps the 32 lanes busy; warp 0's data arrives from memory after hundreds of cycles; warp 0 is issued again, and the lanes never sat idle." width="420" height="206" viewBox="0 0 420 206">
+        <path class="ln" id="m-data" data-at="5" d="M373 36 V18 H56 V30"/><path class="solid" data-at="5" d="M56 36 l-3 -6 h6 z"/>
+        <text data-at="5" x="214" y="12" text-anchor="middle">data for warp 0</text><text class="stepno" x="64" y="30">5</text>
+        <g data-at="1"><rect class="ln" x="4" y="36" width="104" height="26"/><text x="14" y="53">warp 0</text><line class="dot" x1="108" y1="49" x2="172" y2="80"/></g>
+        <g data-at="6" data-only="6"><rect class="ln" x="4" y="36" width="104" height="26"/><text x="14" y="53">warp 0</text><line class="dot" x1="108" y1="49" x2="172" y2="80"/></g>
+        <g data-at="2"><rect class="ln" x="4" y="70" width="104" height="26"/><text x="14" y="87">warp 1</text><line class="dot" x1="108" y1="83" x2="172" y2="92"/></g>
+        <g data-at="3"><rect class="ln" x="4" y="104" width="104" height="26"/><text x="14" y="121">warp 2</text><line class="dot" x1="108" y1="117" x2="172" y2="104"/></g>
+        <g data-at="4"><rect class="ln" x="4" y="138" width="104" height="26"/><text x="14" y="155">warp 3</text><line class="dot" x1="108" y1="151" x2="172" y2="116"/></g>
+        <text class="mut" data-only="2-4" x="98" y="53" text-anchor="end">waits</text>
+        <text class="mut" data-only="4-6" x="98" y="121" text-anchor="end">waits</text>
+        <text class="stepno" x="112" y="45">1 6</text><text class="stepno" x="112" y="79">2</text><text class="stepno" x="112" y="113">3</text><text class="stepno" x="112" y="147">4</text>
+        <rect class="ln" x="172" y="70" width="92" height="56"/><text class="lbl" x="218" y="102" text-anchor="middle">SCHEDULER</text>
+        <path class="ln" d="M218 126 V158"/><path class="solid" d="M218 164 l-3 -6 h6 z"/>
+        <rect class="ln" x="172" y="164" width="92" height="30"/><text class="lbl" x="218" y="183" text-anchor="middle">32 LANES</text>
+        <path class="ln" id="m-load" d="M264 179 H324"/><path class="solid" d="M330 179 l-6 -3 v6 z"/>
+        <text x="282" y="173">load</text><text class="stepno" x="272" y="198">1 3</text>
+        <rect class="ln" x="330" y="36" width="86" height="158"/><text class="lbl" x="373" y="100" text-anchor="middle">MEMORY</text>
+        <text x="373" y="120" text-anchor="middle">VRAM</text><text class="mut" x="373" y="140" text-anchor="middle">100s of</text><text class="mut" x="373" y="156" text-anchor="middle">cycles</text>
+        <circle class="tok" r="3.5" data-path="#m-load" data-at="1"/>
+        <circle class="tok" r="3.5" data-path="#m-load" data-at="3"/>
+        <circle class="tok" r="3.5" data-path="#m-data" data-at="5"/>
+      </svg>
+      <ol class="motion-steps">
+        <li>Warp 0 issues a load, and its request heads out to memory.</li>
+        <li>The data is hundreds of cycles away, so on the next clock the scheduler issues warp 1 instead.</li>
+        <li>Warp 2 issues a load of its own and joins the wait.</li>
+        <li>Warp 3 keeps the lanes busy while two loads are in flight.</li>
+        <li>Warp 0's data arrives and lands in its registers, which never left the SM.</li>
+        <li>Warp 0 is ready again, and the scheduler issues its next instruction. The lanes never sat idle.</li>
+      </ol>
+      <figcaption>No warp is ever copied out. A switch is the scheduler picking a different set of registers on the next clock, so waiting costs nothing as long as some warp is ready.<span class="fig-src">Source: CUDA Programming Guide, section 3.2.2.2 · Modal GPU Glossary, warp scheduler</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="6">
+    <header class="sec"><h2>Memory is wide, far away and usually the limit</h2><span class="idx">06</span></header>
+    <p>Memory is a ladder from small and fast to large and slow. Registers sit beside the lanes; each SM has 256&nbsp;KB of L1 and shared memory; all SMs share a 50&nbsp;MB L2 cache; and behind that sits 80&nbsp;GB of HBM3, high-bandwidth memory, delivering 3&nbsp;TB/s.<sup class="ref"><a href="#s3">3</a></sup> <mark class="subj">HBM</mark> gets that speed from width: each stack of memory chips has a 1,024-bit interface and sits beside the GPU on an interposer, a silicon base that carries far more wires than a circuit board can.<sup class="ref"><a href="#s9">9</a></sup> </p>
+    <p><span class="inferred">The width is there because the lanes eat data so fast.</span> When a warp loads, the hardware merges its 32 threads' requests into as few memory transactions as possible, so 32 neighbouring 4-byte reads become one 128-byte fetch (32 × 4).<sup class="ref"><a href="#s2">2</a></sup> The interposer is costly, because silicon is far more expensive to make than a circuit board.<sup class="ref"><a href="#s9">9</a></sup></p>
+
+    <figure class="fig" data-kind="stack">
+      <div class="fig-head"><span class="fig-tag">FIG. 7</span><span class="fig-hint">H100 · farther and larger going down</span></div>
+      <div class="stack" role="img" aria-label="H100 memory ladder: registers, 256 KB per SM; L1 and shared memory, 256 KB per SM; L2 cache, 50 MB shared by all 132 SMs; HBM3, 80 GB at 3 TB/s; the CPU's RAM, across PCIe at 64 GB/s.">
+        <div><span>registers</span><span>per thread, beside the lanes</span><span>256 KB</span></div>
+        <div><span>L1+shared</span><span>per SM, cache and scratchpad</span><span>256 KB</span></div>
+        <div><span>L2 cache</span><span>shared by all 132 SMs</span><span>50 MB</span></div>
+        <div data-subj><span>HBM3</span><span>the GPU's memory, 3 TB/s</span><span>80 GB</span></div>
+        <div><span>CPU RAM</span><span>across PCIe, 64 GB/s</span><span>host</span></div>
+      </div>
+      <figcaption>Each rung down is bigger and slower. The fourth rung, the GPU's own memory, is the one the roofline below is about.<span class="fig-src">Source: NVIDIA, Hopper architecture in depth</span></figcaption>
+    </figure>
+
+    <p><span class="inferred">Many programs hit the memory limit before the math limit.</span> The roofline model says it in one line: a program's best speed is the lower of peak arithmetic and bandwidth times its arithmetic intensity, the operations it does per byte it moves.<sup class="ref"><a href="#s8">8</a></sup> An H100 does 60 trillion FP32 operations per second (60&nbsp;TFLOPS) against 3&nbsp;TB/s, so a kernel needs 20 operations per byte (60 / 3) to keep the lanes busy.<sup class="ref"><a href="#s3">3</a></sup><sup class="ref"><a href="#s8">8</a></sup> Adding two arrays does one addition per 12 bytes moved, 0.083 per byte, and reaches 0.25&nbsp;TFLOPS (3 × 0.083), under half a percent of peak.<sup class="ref"><a href="#s3">3</a></sup><sup class="ref"><a href="#s8">8</a></sup> Scattered access makes it worse: reading every second number wastes half of each fetch.<sup class="ref"><a href="#s2">2</a></sup></p>
+
+    <figure class="fig" data-kind="chart">
+      <div class="fig-head"><span class="fig-tag">FIG. 8</span><span class="fig-hint">H100 roofline · both axes log</span></div>
+      <svg role="img" aria-label="Roofline chart for the H100: best speed rises with operations per byte at 3 TB/s until 20 operations per byte, where the FP32 lanes top out at 60 TFLOPS; the tensor cores' roof continues the slope to 333 operations per byte and 1000 TFLOPS. Adding two arrays sits at 0.083 operations per byte and 0.25 TFLOPS." width="420" height="216" viewBox="0 0 420 216">
+        <line class="ref-line" x1="283.1" y1="61.5" x2="283.1" y2="190"/>
+        <path class="series" stroke-dasharray="2 4" d="M283.1 61.5 L367.2 20 L400 20"/>
+        <path class="subj" d="M56 173.8 L283.1 61.5 L400 61.5"/>
+        <circle class="solid" cx="119.4" cy="142.5" r="2.5"/>
+        <text x="127" y="158">add two arrays</text>
+        <text x="48" y="160" text-anchor="end">0.1</text>
+        <text x="48" y="126" text-anchor="end">1</text>
+        <text x="48" y="92" text-anchor="end">10</text>
+        <text x="48" y="58" text-anchor="end">100</text>
+        <text x="48" y="24" text-anchor="end">1000</text>
+        <text class="mut" x="8" y="11">TFLOPS</text>
+        <text x="56" y="208">0.01</text>
+        <text x="124.8" y="208" text-anchor="middle">0.1</text>
+        <text x="193.6" y="208" text-anchor="middle">1</text>
+        <text x="262.4" y="208" text-anchor="middle">10</text>
+        <text x="331.2" y="208" text-anchor="middle">100 ops/byte</text>
+        <text x="289" y="80">ridge, 20</text>
+        <text class="subj" x="276" y="54" text-anchor="end">FP32 lanes, 60</text>
+        <text x="360" y="12" text-anchor="end">tensor cores, 1000</text>
+      </svg>
+      <figcaption>Left of the ridge, where the slope meets the flat roof, speed is bandwidth times operations per byte. Adding two arrays sits far down the slope, and no amount of extra math units would lift it.<span class="fig-src">Source: derived from NVIDIA, Hopper architecture in depth, with the roofline model</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="7">
+    <header class="sec"><h2>Drawing a frame mixes programs and fixed hardware</h2><span class="idx">07</span></header>
+    <p>For graphics the same SMs run shaders, small programs written for one vertex or one pixel, and fixed-function hardware does the steps that never change.<sup class="ref"><a href="#s6">6</a></sup><sup class="ref"><a href="#s5">5</a></sup> A vertex shader places each triangle's corners, its vertices, on the screen.<sup class="ref"><a href="#s5">5</a></sup> The <mark class="subj">rasterizer</mark>, a fixed block of logic, then works out which pixels each triangle covers: first it tests 8&nbsp;×&nbsp;8 pixel tiles, then the pixels inside the tiles that might be hit, and it hands them on in 2&nbsp;×&nbsp;2 groups.<sup class="ref"><a href="#s5">5</a></sup> Pixel shaders on the SMs compute each pixel's colour, and output units at the end blend it into the frame and test its depth, whether something nearer already covers that pixel.<sup class="ref"><a href="#s5">5</a></sup></p>
+    <p>Older GPUs had separate vertex and pixel units, and one set sat idle whenever a scene leaned on the other. Unified shaders let any SM run any stage, so the load balances itself.<sup class="ref"><a href="#s6">6</a></sup> The stages that stay fixed are simple and run for every pixel: testing coverage is a few integer additions and sign checks, done in parallel.<sup class="ref"><a href="#s5">5</a></sup> Even so, designers keep fixed blocks lean, because they want the chip area and power in the shader lanes.<sup class="ref"><a href="#s5">5</a></sup></p>
+    <p>Fixed hardware is fast at one job only. <span class="inferred">Because the rasterizer emits 2&nbsp;×&nbsp;2 groups, a triangle one pixel across still costs a group of four, so scenes made of tiny triangles waste most of the pixel work.</span> Blending reads, changes and writes memory, and it must happen in the order the program drew things, so the output units have to sort overlapping pixels first.<sup class="ref"><a href="#s5">5</a></sup> <span class="inferred">Layers of transparent smoke or glass pay that cost once per layer.</span></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 9</span><span class="fig-hint">one draw call · left to right</span></div>
+      <svg class="grid" role="img" aria-label="Graphics pipeline: a vertex shader on the SMs feeds the fixed rasterizer, which tests 8 by 8 tiles and emits 2 by 2 pixel groups to the pixel shader on the SMs, which feeds the fixed output units that blend and depth-test." viewBox="0 0 470.4 100.8" width="470.4" height="100.8">
+<path class="ln" d="M4.2 8.4H79.8"/>
+<path class="ln" d="M121.8 8.4H231"/>
+<path class="ln" d="M273 8.4H348.6"/>
+<path class="ln" d="M390.6 8.4H466.2"/>
+<path class="ln" d="M84 25.2H105"/>
+<path class="ln" d="M235.2 25.2H256.2"/>
+<path class="ln" d="M352.8 25.2H373.8"/>
+<path class="ln" d="M4.2 58.8H79.8"/>
+<path class="ln" d="M121.8 58.8H231"/>
+<path class="ln" d="M273 58.8H348.6"/>
+<path class="ln" d="M390.6 58.8H466.2"/>
+<path class="ln" d="M4.2 8.4V58.8"/>
+<path class="ln" d="M79.8 8.4V58.8"/>
+<path class="ln" d="M121.8 8.4V58.8"/>
+<path class="ln" d="M231 8.4V58.8"/>
+<path class="ln" d="M273 8.4V58.8"/>
+<path class="ln" d="M348.6 8.4V58.8"/>
+<path class="ln" d="M390.6 8.4V58.8"/>
+<path class="ln" d="M466.2 8.4V58.8"/>
+<path class="hd" d="M108.8 25.2 L103.2 22 L103.2 28.4 Z"/>
+<path class="hd" d="M260 25.2 L254.4 22 L254.4 28.4 Z"/>
+<path class="hd" d="M377.6 25.2 L372 22 L372 28.4 Z"/>
+<text class="tx" x="16.8" y="25.2" textLength="50.4">vertex</text>
+<text class="tx subj" x="134.4" y="25.2" textLength="84">rasterizer</text>
+<text class="tx" x="285.6" y="25.2" textLength="42">pixel</text>
+<text class="tx" x="403.2" y="25.2" textLength="50.4">output</text>
+<text class="tx" x="16.8" y="42" textLength="50.4">shader</text>
+<text class="tx" x="151.2" y="42" textLength="42">fixed</text>
+<text class="tx" x="285.6" y="42" textLength="50.4">shader</text>
+<text class="tx" x="403.2" y="42" textLength="42">fixed</text>
+<text class="tx" x="8.4" y="75.6" textLength="50.4">on SMs</text>
+<text class="tx" x="126" y="75.6" textLength="84">8×8 tiles,</text>
+<text class="tx" x="277.2" y="75.6" textLength="50.4">on SMs</text>
+<text class="tx" x="394.8" y="75.6" textLength="50.4">blend,</text>
+<text class="tx" x="126" y="92.4" textLength="84">2×2 groups</text>
+<text class="tx" x="394.8" y="92.4" textLength="42">depth</text>
+</svg>
+      <figcaption>The two programmable stages run on the SMs. The fixed rasterizer between them turns each triangle into pixels, and the fixed output units write them into the frame.<span class="fig-src">Source: Giesen, A trip through the graphics pipeline, parts 6 and 9</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="mechanism" data-step="8">
+    <header class="sec"><h2>Tensor cores do matrix math in tiles</h2><span class="idx">08</span></header>
+    <p>A <mark class="subj">tensor core</mark> is a unit that multiplies small matrices in one instruction. On the V100, where they first appeared, each one computes D = A × B + C on 4&nbsp;×&nbsp;4 tiles every clock: 64 multiply-adds, with 16-bit inputs and 16- or 32-bit results.<sup class="ref"><a href="#s7">7</a></sup> The H100 has four per SM, 528 in all.<sup class="ref"><a href="#s3">3</a></sup></p>
+    <p>Neural networks are built from matrix multiplications and convolutions, sliding-window filters, which is exactly what tensor cores speed up.<sup class="ref"><a href="#s7">7</a></sup> <span class="inferred">In a matrix product each number is reused many times, so a unit that works on a whole tile at once does 64 multiply-adds per instruction instead of one, with no extra scheduling.</span> The payoff is large: an H100 does 60&nbsp;TFLOPS on its FP32 lanes and 1,000&nbsp;TFLOPS of 16-bit math on its tensor cores, about 16 times as much (1,000 / 60).<sup class="ref"><a href="#s3">3</a></sup></p>
+    <p><span class="inferred">Tensor cores help only work shaped like a matrix product at the precisions they support; code that branches per element or needs 64-bit precision gets none of that speed.</span> Feeding them is the second limit. At 1,000&nbsp;TFLOPS against 3&nbsp;TB/s, a kernel needs about 333 operations per byte (1,000 / 3) to reach the tensor roof in FIG. 8, so only large matrices, kept in shared memory and registers between uses, get near it.<sup class="ref"><a href="#s3">3</a></sup><sup class="ref"><a href="#s8">8</a></sup></p>
+
+    <figure class="fig" data-kind="units">
+      <div class="fig-head"><span class="fig-tag">FIG. 10</span><span class="fig-hint">H100 · 1 square = 10 TFLOPS</span></div>
+      <div class="units" role="img" aria-label="Unit grid of H100 peak math: the FP32 lanes give 60 TFLOPS, 6 squares; the tensor cores give 1,000 TFLOPS of dense 16-bit math, 100 squares.">
+        <div class="units-grid" style="--per-row:20">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i>
+        </div>
+        <div class="units-key"><span><i class="on"></i>FP32 lanes 60</span><span><i class="subj"></i>tensor cores, 16-bit, 1,000</span></div>
+      </div>
+      <figcaption>Six squares come from all 16,896 FP32 lanes; a hundred come from 528 tensor cores. For matrix work, the tensor cores are most of the chip's arithmetic.<span class="fig-src">Source: NVIDIA, Hopper architecture in depth</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="finish">
+    <header class="sec"><h2>What it comes down to</h2><span class="idx">09</span></header>
+    <p>A GPU is <strong>a bet that the work splits into many independent pieces</strong>. It spends its transistors on math lanes and registers instead of on making one thread fast, and it hides waiting by keeping thousands of threads on the chip and switching between them every clock.<sup class="ref"><a href="#s1">1</a></sup><sup class="ref"><a href="#s4">4</a></sup> Every part on this page serves that bet, from the queue that keeps the GPU fed to the tensor cores that make its commonest job cheaper.</p>
+    <p>Two ideas carry over to other systems. <span class="inferred">Hiding latency with many waiting tasks, rather than shortening each wait, is also how a web server with thousands of open connections stays busy while each one waits on a database.</span> And the roofline question, how many operations per byte moved, predicts the speed of any machine whose memory is slower than its arithmetic.<sup class="ref"><a href="#s8">8</a></sup> To judge whether a job suits a GPU, ask it in order:</p>
+    <ol class="steps">
+      <li><span><b>Does it split?</b> Thousands of independent items, with no item waiting on another's result.<sup class="ref"><a href="#s1">1</a></sup></span></li>
+      <li><span><b>Can the data stay on the card?</b> PCIe is about 47 times slower than VRAM.<sup class="ref"><a href="#s3">3</a></sup></span></li>
+      <li><span><b>Do neighbouring threads agree?</b> Same branch, neighbouring addresses, so warps stay whole and loads merge.<sup class="ref"><a href="#s2">2</a></sup></span></li>
+      <li><span><b>How many operations per byte?</b> Under about 20 on an H100, memory sets the speed; matrix work at hundreds can use the tensor cores.<sup class="ref"><a href="#s3">3</a></sup><sup class="ref"><a href="#s8">8</a></sup></span></li>
+      <li><span><b>Is there room for warps?</b> Few registers per thread, so the scheduler has warps to switch to.<sup class="ref"><a href="#s2">2</a></sup></span></li>
+    </ol>
+    <p><b>Going deeper.</b> Consumer and datacenter GPUs share this design and differ in where they spend. A consumer RTX 4090 pairs 16,384 FP32 lanes with 24&nbsp;GB of GDDR6X on a 384-bit bus, adds ray-tracing cores for lighting, and draws 450&nbsp;W.<sup class="ref"><a href="#s11">11</a></sup> A datacenter H100 carries 80&nbsp;GB of HBM3 at 3&nbsp;TB/s, 900&nbsp;GB/s links to other GPUs, and draws 700&nbsp;W.<sup class="ref"><a href="#s3">3</a></sup> Integrated GPUs in laptops and phones have no VRAM of their own and share the CPU's RAM.<sup class="ref"><a href="#s10">10</a></sup> The numbers that matter in practice are memory bandwidth, memory size, and peak operations per second at the precision you use; the ratio of the first and third says which wall a program hits.<sup class="ref"><a href="#s8">8</a></sup> Read NVIDIA's CUDA Programming Guide next for the compute side,<sup class="ref"><a href="#s1">1</a></sup> and Fabian Giesen's trip through the graphics pipeline for the drawing side.<sup class="ref"><a href="#s5">5</a></sup></p>
+    <p><b>Limits.</b> This page uses NVIDIA's names and the H100's numbers. <span class="inferred">AMD and Apple build GPUs on the same principles under other names, and their group sizes and memory layouts differ.</span> Ray-tracing cores, video encoders, display output, links between GPUs and the shader compiler are left out. The costs of divergence, of the last round of blocks and of tiny triangles are worked examples, not measurements, and memory latency is given as hundreds of cycles because NVIDIA's guide gives no single figure.<sup class="ref"><a href="#s2">2</a></sup></p>
+  </section>
+
+  <section data-part="sources">
+    <header class="sec"><h2>Sources</h2><span class="idx">10</span></header>
+    <ol class="sources">
+      <li id="s1"><span><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/">CUDA Programming Guide</a>, NVIDIA. Sections 1.1 (benefits of using GPUs), 1.2 (thread blocks, grids, clusters, memory) and 3.2.2 (SIMT execution, hardware multithreading).<span class="label">docs.nvidia.com · read 3 Nov 2026</span></span></li>
+      <li id="s2"><span><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html">CUDA C++ Best Practices Guide</a>, NVIDIA. Host and device transfers, coalesced access, occupancy, memory latency, branch divergence.<span class="label">docs.nvidia.com · read 3 Nov 2026</span></span></li>
+      <li id="s3"><span><a href="https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/">NVIDIA Hopper Architecture In-Depth</a>, NVIDIA Technical Blog. H100 SXM5 SMs, lanes, tensor cores, caches, HBM3, PCIe and NVLink figures.<span class="label">developer.nvidia.com · read 3 Nov 2026</span></span></li>
+      <li id="s4"><span><a href="https://modal.com/gpu-glossary/device-hardware/streaming-multiprocessor">GPU Glossary</a>, Modal. Entries on the streaming multiprocessor and the warp scheduler.<span class="label">modal.com · read 3 Nov 2026</span></span></li>
+      <li id="s5"><span><a href="https://fgiesen.wordpress.com/2011/07/01/a-trip-through-the-graphics-pipeline-2011-part-1/">A trip through the Graphics Pipeline 2011</a>, Fabian Giesen. Part 1 (driver and command processor), part 6 (rasterization), part 9 (pixel processing and blending).<span class="label">fgiesen.wordpress.com · read 3 Nov 2026</span></span></li>
+      <li id="s6"><span><a href="https://en.wikipedia.org/wiki/Unified_shader_model">Unified shader model</a>, Wikipedia.<span class="label">en.wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s7"><span><a href="https://developer.nvidia.com/blog/programming-tensor-cores-cuda-9/">Programming Tensor Cores in CUDA 9</a>, NVIDIA Technical Blog. The 4 × 4 matrix multiply-accumulate on V100.<span class="label">developer.nvidia.com · read 3 Nov 2026</span></span></li>
+      <li id="s8"><span><a href="https://en.wikipedia.org/wiki/Roofline_model">Roofline model</a>, Wikipedia. After Williams, Waterman and Patterson, 2009.<span class="label">en.wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s9"><span><a href="https://en.wikipedia.org/wiki/High_Bandwidth_Memory">High Bandwidth Memory</a>, Wikipedia.<span class="label">en.wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s10"><span><a href="https://en.wikipedia.org/wiki/Graphics_processing_unit">Graphics processing unit</a>, Wikipedia.<span class="label">en.wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s11"><span><a href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/">GeForce RTX 4090</a>, NVIDIA. Specifications.<span class="label">nvidia.com · read 3 Nov 2026</span></span></li>
+    </ol>
+    <p class="label key">~ inferred, not sourced</p>
+  </section>
+
+</main>
+
+<script>
+/* jm-explain motion v1 */
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - (2 - 2 * k) ** 3 / 2);
+  document.querySelectorAll('.fig[data-kind="motion"]').forEach((fig) => {
+    const svg = fig.querySelector('svg');
+    const list = fig.querySelector('ol.motion-steps');
+    const items = list ? [...list.children] : [];
+    const n = items.length;
+    if (!svg || n < 2) return;
+    const fixed = new Set(svg.querySelectorAll('.subj'));
+    const span = (v) => { const rs = (v || '0').split(',').map((r) => { const [a, b = a] = r.split('-').map(Number); return [a, b]; }); return (k) => rs.some(([a, b]) => k >= a && k <= b); };
+    const parts = [...svg.querySelectorAll('[data-at], [data-only]')].map((el) => {
+      const tok = el.classList.contains('tok');
+      const at = span(el.dataset.at);
+      const only = el.dataset.only ? span(el.dataset.only) : at;
+      return { el, at, only, tok, path: tok && svg.querySelector(el.dataset.path), paint: el.tagName === 'g' ? [el, ...el.querySelectorAll('*')] : [el] };
+    });
+    const flows = [...svg.querySelectorAll('[data-flow]')];
+    flows.forEach((el) => el.style.setProperty('--flow-dur', 0.8 / (parseFloat(el.dataset.flow) || 1) + 's'));
+    let cur = 1, timer = 0, started = false;
+
+    const travel = (p, animate) => {
+      cancelAnimationFrame(p.raf);
+      if (!p.path) return;
+      const len = p.path.getTotalLength();
+      const put = (k) => { const pt = p.path.getPointAtLength(len * k); p.el.setAttribute('transform', `translate(${pt.x} ${pt.y})`); };
+      if (!animate || reduce.matches) return put(1);
+      const t0 = performance.now();
+      const tick = (now) => { const k = Math.min(1, (now - t0) / 900); put(ease(k)); if (k < 1) p.raf = requestAnimationFrame(tick); };
+      put(0);
+      p.raf = requestAnimationFrame(tick);
+    };
+    const setFlows = () => flows.forEach((el) => el.classList.toggle('flowing', started && (el.dataset.at ? el.classList.contains('on') : !!timer)));
+    const go = (k, animate) => {
+      cur = ((k - 1 + n) % n) + 1;
+      for (const p of parts) {
+        const on = p.at(cur);
+        p.el.classList.toggle('on', on);
+        p.el.classList.toggle('shown', p.only(cur));
+        if (p.tok) { if (on) travel(p, animate); else cancelAnimationFrame(p.raf); }
+        else p.paint.forEach((e) => fixed.has(e) || e.classList.toggle('subj', on));
+      }
+      items.forEach((li, i) => li.classList.toggle('on', i + 1 === cur));
+      count.textContent = `${cur}/${n}`;
+      setFlows();
+    };
+
+    const button = (text, label, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.setAttribute('aria-label', label);
+      b.addEventListener('click', fn);
+      return b;
+    };
+    const pause = () => {
+      clearInterval(timer);
+      timer = 0;
+      play.textContent = '[ play ]';
+      play.setAttribute('aria-label', 'Play the steps');
+      setFlows();
+    };
+    const step = (d) => { started = true; pause(); go(cur + d, true); };
+    const play = button('[ play ]', 'Play the steps', () => {
+      if (timer) return pause();
+      started = true;
+      timer = setInterval(() => go(cur + 1, true), reduce.matches ? 4000 : 2600);
+      play.textContent = '[ pause ]';
+      play.setAttribute('aria-label', 'Pause');
+      go(cur, true);
+    });
+    const count = document.createElement('span');
+    count.className = 'motion-count';
+    const bar = document.createElement('div');
+    bar.className = 'motion-bar';
+    bar.append(button('[ prev ]', 'Previous step', () => step(-1)), play, button('[ next ]', 'Next step', () => step(1)), count);
+    list.before(bar);
+    svg.setAttribute('tabindex', '0');
+    fig.addEventListener('keydown', (e) => {
+      const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (d) { e.preventDefault(); step(d); }
+    });
+    const hint = fig.querySelector('[data-hint]');
+    if (hint) hint.textContent = 'arrow keys step';
+    fig.classList.add('live');
+    go(1, false);
+    list.setAttribute('aria-live', 'polite');
+  });
+})();
+</script>
+</body>
+</html>

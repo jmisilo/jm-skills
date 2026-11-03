@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How payment platforms like Stripe and Polar work</title>
+<!-- accent: #1f6feb on #fafafa = 4.44:1, under 4.5. Same OKLCH hue (259.7) and chroma (0.202),
+     lightness 0.569 -> 0.555 gives #1a6be6. Relative luminance 0.1645 vs paper 0.9560:
+     (0.9560 + 0.05) / (0.1645 + 0.05) = 4.69:1, passes AA for normal text. -->
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #171717;
+  --ink-2: #525252;
+  --muted: #8f8f8f;
+  --faint: #bdbdbd;
+  --rule: #ebebeb;
+  --well: #efefef;
+  --accent: #1a6be6;
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px;
+  --fig-width: 880px;
+}
+
+/* == base == */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--paper); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font: 15px/1.6 var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: var(--accent-soft); }
+p { margin: 0 0 16px; text-wrap: pretty; }
+a { color: var(--ink); text-decoration: underline 1px var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink-2); }
+b, strong { font-weight: 600; }
+
+/* == page: prose in --measure, figures break out to --fig-width == */
+.page { max-width: calc(var(--fig-width) + 40px); margin: 0 auto; padding: 72px 20px 120px; }
+.page > * > :not(.fig) { max-width: var(--measure); margin-inline: auto; }
+.page > section { margin-top: 64px; }
+.page > [data-part="problem"] { margin-top: 40px; }
+
+/* == prompt header == */
+.prompt {
+  margin-bottom: 0;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  font: 13px/1.6 var(--mono);
+  color: var(--ink-2);
+}
+.prompt .caret { color: var(--muted); }
+.prompt b { color: var(--ink); }
+.meta {
+  margin-top: 4px;
+  padding: 0 0 16px 15.6px; /* 2ch of the 13px prompt */
+  border-bottom: 1px solid var(--rule);
+  font: 11px/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+/* == headings == */
+h1 { margin: 0 0 16px; font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
+.sec { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.sec::after { content: ""; order: 1; flex: 1; border-top: 1px solid var(--rule); }
+.sec .idx { order: 2; }
+.idx, .label {
+  font: 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* == inline == */
+code {
+  padding: .05em .25em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: .9em;
+}
+dfn { font-style: normal; font-weight: 600; }
+mark { background: none; color: inherit; }
+.subj, [data-subj], .val { color: inherit; font-weight: 600; background: none; }
+.fig .subj, .fig [data-subj], .fig .val { color: var(--accent); font-weight: inherit; }
+.val { font-variant-numeric: tabular-nums; }
+.inferred { text-decoration: none; }
+.inferred::after { content: "~"; font: 10px var(--mono); color: var(--muted); vertical-align: super; margin-left: 1px; }
+.fault { color: var(--fault); }
+sup.ref { font: 10px/0 var(--mono); vertical-align: super; margin-left: 1px; }
+sup.ref a { padding: 0 1px; color: var(--ink-2); text-decoration: none; }
+sup.ref a:hover { color: var(--ink); }
+.lead { font-weight: 600; }
+
+/* == primer: term | definition rows == */
+dl.terms {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  margin-block: 0;
+  border-bottom: 1px solid var(--rule);
+}
+dl.terms dt, dl.terms dd { padding: 12px 0; border-top: 1px solid var(--rule); }
+dl.terms dt {
+  padding-right: 24px;
+  font: 11px/24px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+}
+dl.terms dd { margin: 0; color: var(--ink); }
+
+/* == numbered steps: faint numerals, bold lead-in, grey rest == */
+ol.steps { margin: 0 0 24px; padding: 0; list-style: none; counter-reset: step; border-bottom: 1px solid var(--rule); }
+ol.steps > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  counter-increment: step;
+}
+ol.steps > li::before {
+  content: counter(step, decimal-leading-zero);
+  font: 12px/24px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+ol.steps > li > span > b:first-child { color: var(--ink); }
+
+/* == sources == */
+ol.sources { margin: 0; padding: 0; list-style: none; counter-reset: src; font-size: 14px; }
+ol.sources > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 8px 0;
+  color: var(--ink-2);
+  counter-increment: src;
+}
+ol.sources > li::before {
+  content: counter(src, decimal-leading-zero);
+  font: 12px/22px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+ol.sources .label { display: block; margin-top: 4px; }
+ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink); }
+.key { margin-top: 24px; }
+
+@media (max-width: 480px) {
+  .page { padding-top: 40px; }
+  dl.terms { grid-template-columns: 1fr; }
+  dl.terms dt { padding-bottom: 4px; }
+  dl.terms dd { padding-top: 0; border-top: 0; }
+  ol.steps > li, ol.sources > li { grid-template-columns: 28px 1fr; }
+}
+
+/* == figures == */
+/* Figures sit on the paper: no card, border, fill or shadow. Default width is --measure; .wide breaks out to --fig-width. */
+.fig { max-width: var(--measure); margin: 40px auto; padding: 0; border: 0; background: none; container-type: inline-size; }
+.fig.wide { max-width: var(--fig-width); }
+.fig-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.fig-tag, .fig-hint, .fig-src, .fig-name {
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.fig-name { margin-right: auto; color: var(--ink-2); }
+.fig-hint { text-align: right; }
+.fig figcaption {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--faint);
+  font: 13px/1.5 var(--sans);
+  color: var(--ink-2);
+}
+.fig-src { display: block; margin-top: 4px; }
+
+/* svg: drawn at real size (width = viewBox width), never scaled up, centred; 1px strokes at any scale */
+.fig svg { overflow: visible; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig > svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+.fig svg text { font: 12px var(--mono); font-variant-numeric: tabular-nums; fill: var(--ink-2); stroke: none; }
+.fig svg text.lbl { font-size: 11px; letter-spacing: .06em; }
+.fig svg text.mut { fill: var(--muted); }
+.fig svg .ln { stroke: var(--ink-2); fill: none; }
+.fig svg .ln-faint { stroke: var(--faint); fill: none; }
+/* drawings (schematic, panel, motion): object outlines a step bolder than the annotations */
+.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part, .fig[data-kind="motion"] svg .part { stroke: var(--ink); stroke-width: 1.25; fill: none; }
+.fig svg .leader { stroke: var(--muted); fill: none; }
+.fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
+.fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .dash { stroke: var(--muted); stroke-dasharray: 2 4; fill: none; }
+.fig svg .solid { fill: var(--ink-2); stroke: none; }
+.fig svg .ref-line { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .series { stroke: var(--ink-2); fill: none; }
+.fig svg .after { stroke: var(--muted); fill: none; }
+.fig svg .subj { stroke: var(--accent); fill: none; }
+.fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
+.fig svg .solid.subj { fill: var(--accent); stroke: none; }
+.fig svg text.subj { fill: var(--accent); stroke: none; }
+.fig svg .part.subj { stroke: var(--accent); }
+
+/* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
+.ascii { container-type: inline-size; font-size: 14px; }
+.ascii pre {
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)));
+  line-height: 1.2;
+  color: var(--ink-2);
+  user-select: none;
+}
+
+/* timeline: label column + track, positions as % */
+.tl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 14px;
+  align-items: center;
+  font: 12px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.tl-axis, .tl-bracket, .tl-track { position: relative; }
+.tl-axis { height: 14px; }
+.tl-axis span { position: absolute; left: var(--at); transform: translateX(-50%); white-space: nowrap; }
+.tl-axis span:first-child { transform: none; }
+.tl-axis span:last-child { transform: translateX(-100%); }
+.tl-bracket { height: 8px; }
+.tl-seg { position: absolute; left: var(--a); width: calc(var(--b) - var(--a)); bottom: 0; height: 8px; border-bottom: 1px solid var(--faint); }
+.tl-tick { position: absolute; left: var(--at); bottom: 0; width: 1px; height: 8px; background: var(--faint); }
+.tl-tick:last-child { margin-left: -1px; }
+.tl-track { height: 8px; background: var(--well); }
+.tl-bar { position: absolute; top: 0; bottom: 0; left: var(--a); width: calc(var(--b) - var(--a)); background: var(--ink-2); }
+.tl-track[data-subj] .tl-bar { background: var(--accent); }
+
+/* stack: one hairline block per layer, top of the stack first */
+.stack { display: grid; gap: 4px; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.stack > div { display: grid; grid-template-columns: 9ch 1fr auto; gap: 16px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--faint); }
+.stack > div > :first-child { color: var(--ink); }
+.stack > div > :last-child { text-align: right; }
+.stack > [data-subj] { border-color: var(--accent); }
+
+/* units: one square per unit, key underneath */
+.units { display: grid; gap: 12px; justify-items: center; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.units-grid { display: grid; grid-template-columns: repeat(var(--per-row, 20), 12px); gap: 4px; }
+.units-grid i, .units-key i { display: block; width: 12px; height: 12px; background: var(--well); }
+.units-grid .on, .units-key .on { background: var(--ink-2); }
+.units-grid .subj, .units-key .subj { background: var(--accent); }
+.units-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.units-key span { display: inline-flex; align-items: center; gap: 8px; }
+.units-key i { width: 8px; height: 8px; }
+
+/* table: semantic table, hairline rows, --well header row */
+.fig table { width: 100%; border-collapse: collapse; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.fig th, .fig td { padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.fig th { font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; background: var(--well); }
+.fig th:first-child, .fig td:first-child { padding-left: 8px; }
+.fig .num { text-align: right; }
+
+/* panel: tag line, code with live values, small schematic, chart, footer with formula and readouts */
+.panel { display: grid; grid-template-columns: 1fr auto; gap: 24px 32px; align-items: start; }
+.panel-code { font: 13px/1.85 var(--mono); color: var(--ink-2); counter-reset: ln; }
+.panel-code > div { white-space: pre; counter-increment: ln; }
+.panel-code > div::before { content: counter(ln); display: inline-block; width: 3ch; color: var(--faint); }
+.panel-code b { font-weight: 600; color: var(--ink); }
+.panel-code .c { color: var(--muted); }
+.panel-code [data-param] { cursor: ew-resize; touch-action: none; border-radius: 2px; }
+.panel-code [data-param]:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.plot { grid-column: 1 / -1; position: relative; height: 180px; margin: 8px 0 24px 3ch; font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.plot > span { position: absolute; white-space: nowrap; }
+.plot .y { right: calc(100% + 1ch); top: var(--y); transform: translateY(-50%); }
+.plot .x { top: calc(100% + 10px); left: var(--x); transform: translateX(var(--tx, -50%)); }
+.plot .mark { left: var(--x); top: -4px; margin-left: 6px; }
+.plot .legend { right: 0; bottom: 8px; color: var(--muted); }
+.fig-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--faint);
+  font: 12px/1.8 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
+.fig-foot > :nth-child(2) { color: var(--muted); }
+
+/* motion: a drawing the reader steps through. Static: every part, .stepno numbers, the full step list.
+   The motion script adds .live: data-at parts turn accent in their steps, .tok travels its path, [data-flow] dashes move */
+.fig svg .tok { fill: var(--accent); stroke: none; }
+.fig svg .tok:not(.on) { display: none; }
+.fig svg [data-flow] { stroke-dasharray: 4 4; }
+.fig svg [data-flow].flowing { animation: motion-flow var(--flow-dur, .8s) linear infinite; }
+@keyframes motion-flow { to { stroke-dashoffset: -16; } }
+.fig svg text.stepno { font-size: 11px; fill: var(--muted); }
+.fig.live svg .stepno, .fig.live svg [data-only]:not(.shown) { display: none; }
+.fig.live > svg:focus-visible { outline: 1px solid var(--accent); outline-offset: 8px; }
+.motion-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 16px; }
+.motion-bar button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: pre;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.motion-bar button:hover { color: var(--ink); }
+.motion-bar button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.motion-count { margin-left: auto; font: 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .06em; color: var(--muted); }
+ol.motion-steps { margin: 16px 0 0; padding: 0; list-style: none; counter-reset: mstep; font: 13px/1.5 var(--sans); color: var(--ink-2); }
+ol.motion-steps > li { position: relative; padding: 2px 0 2px 24px; counter-increment: mstep; }
+ol.motion-steps > li::before { content: counter(mstep); position: absolute; left: 0; top: 2px; font: 11px/19.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.fig.live ol.motion-steps { display: grid; margin-top: 8px; }
+.fig.live ol.motion-steps > li { grid-area: 1 / 1; padding: 0; visibility: hidden; color: var(--ink); }
+.fig.live ol.motion-steps > li::before { content: none; }
+.fig.live ol.motion-steps > li.on { visibility: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .fig svg [data-flow].flowing { animation: none; }
+}
+
+/* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
+@container (max-width: 480px) {
+  .panel { grid-template-columns: 1fr; }
+  .panel > svg { justify-self: center; }
+  .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
+  .fig th, .fig td { padding-inline: 6px; }
+}
+
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header data-part="prompt">
+    <p class="prompt"><span class="caret">&gt;</span> <b>/jm-explain</b> how payment platforms like stripe or polar.sh work</p>
+    <p class="meta">9 figures · 21 sources · 3 Nov 2026</p>
+  </header>
+
+  <section data-part="problem">
+    <h1>How payment platforms like Stripe and Polar work</h1>
+    <p>A <mark class="subj">payment platform</mark> lets a business take money from a customer's card through one programming interface, an API: requests the business's own server sends to the platform's servers. The customer types a card number, the business gets a yes within a few seconds, and the money reaches the business's bank account days later.<sup class="ref"><a href="#s2">2</a></sup> Stripe alone moved $1.4T in 2024, about 1.3% of global GDP.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p>Behind that one interface sit organisations that never deal with a small business directly. The customer's bank decides whether to pay, a card network such as Visa or Mastercard carries the request between banks, and a bank on the side of the merchant, the business doing the selling, receives the money.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">Taking cards used to mean opening your own account with that bank, passing its checks and doing the security and fraud work yourself.</span> A platform replaces that with one account it holds on behalf of every business that signs up.<sup class="ref"><a href="#s3">3</a></sup></p>
+    <p>Platforms come in two kinds. Stripe is a payment service provider: it moves the money, while the business stays the seller and carries the tax and other liabilities of each sale.<sup class="ref"><a href="#s17">17</a></sup> Polar is a merchant of record: built on Stripe, it takes on those liabilities, sales tax first among them, by becoming the seller.<sup class="ref"><a href="#s17">17</a></sup> The figure shows the parties every card payment crosses; the eight sections below follow one payment through them, from signup to tax.</p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">one card payment · the whole path</span></div>
+      <svg class="grid" role="img" aria-label="Overview: the customer's card goes to the payment platform, and the merchant talks to the platform through its API. The platform asks the card network, which asks the customer's bank; the yes comes back the same way in seconds. Money follows the same path upward a day or two later, and the platform pays the merchant out days later." viewBox="0 0 436.8 252" width="436.8" height="252">
+<path class="ln" d="M4.2 8.4H96.6"/>
+<path class="ln" d="M163.8 8.4H273"/>
+<path class="ln" d="M340.2 8.4H432.6"/>
+<path class="ln" d="M100.8 25.2H147"/>
+<path class="ln" d="M289.8 25.2H327.6"/>
+<path class="ln" d="M4.2 42H96.6"/>
+<path class="ln" d="M163.8 42H273"/>
+<path class="ln" d="M340.2 42H432.6"/>
+<path class="ln dash" d="M260.4 75.6H386.4"/>
+<path class="ln" d="M155.4 109.2H289.8"/>
+<path class="ln" d="M155.4 142.8H289.8"/>
+<path class="ln" d="M155.4 210H289.8"/>
+<path class="ln" d="M155.4 243.6H289.8"/>
+<path class="ln" d="M4.2 8.4V42"/>
+<path class="ln" d="M96.6 8.4V42"/>
+<path class="ln" d="M155.4 109.2V142.8"/>
+<path class="ln" d="M155.4 210V243.6"/>
+<path class="ln" d="M163.8 8.4V42"/>
+<path class="ln" d="M180.6 50.4V92.4"/>
+<path class="ln" d="M180.6 151.2V193.2"/>
+<path class="ln" d="M205.8 58.8V100.8"/>
+<path class="ln" d="M205.8 159.6V201.6"/>
+<path class="ln dash" d="M256.2 58.8V100.8"/>
+<path class="ln dash" d="M256.2 159.6V201.6"/>
+<path class="ln" d="M273 8.4V42"/>
+<path class="ln" d="M289.8 109.2V142.8"/>
+<path class="ln" d="M289.8 210V243.6"/>
+<path class="ln" d="M340.2 8.4V42"/>
+<path class="ln dash" d="M390.6 58.8V84"/>
+<path class="ln" d="M432.6 8.4V42"/>
+<path class="hd" d="M150.8 25.2 L145.2 22 L145.2 28.4 Z"/>
+<path class="hd" d="M286 25.2 L291.6 22 L291.6 28.4 Z"/>
+<path class="hd" d="M205.8 50.8 L202.6 56.4 L209 56.4 Z"/>
+<path class="hd" d="M256.2 50.8 L253 56.4 L259.4 56.4 Z"/>
+<path class="hd" d="M390.6 50.8 L387.4 56.4 L393.8 56.4 Z"/>
+<path class="hd" d="M180.6 100.4 L177.4 94.8 L183.8 94.8 Z"/>
+<path class="hd" d="M205.8 151.6 L202.6 157.2 L209 157.2 Z"/>
+<path class="hd" d="M256.2 151.6 L253 157.2 L259.4 157.2 Z"/>
+<path class="hd" d="M180.6 201.2 L177.4 195.6 L183.8 195.6 Z"/>
+<text class="tx" x="109.2" y="8.4" textLength="33.6">card</text>
+<text class="tx" x="294" y="8.4" textLength="25.2">API</text>
+<text class="tx" x="16.8" y="25.2" textLength="67.2">customer</text>
+<text class="tx subj" x="184.8" y="25.2" textLength="67.2">platform</text>
+<text class="tx" x="352.8" y="25.2" textLength="67.2">merchant</text>
+<text class="tx" x="142.8" y="75.6" textLength="25.2">ask</text>
+<text class="tx" x="218.4" y="75.6" textLength="25.2">yes</text>
+<text class="tx" x="277.2" y="92.4" textLength="151.2">payout, days later</text>
+<text class="tx" x="168" y="126" textLength="100.8">card network</text>
+<text class="tx" x="142.8" y="176.4" textLength="25.2">ask</text>
+<text class="tx" x="218.4" y="176.4" textLength="25.2">yes</text>
+<text class="tx" x="268.8" y="176.4" textLength="159.6">money, a day or two</text>
+<text class="tx" x="168" y="226.8" textLength="109.2">customer bank</text>
+</svg>
+      <figcaption>The yes travels down and back in seconds; the money follows the dashed path days later. The platform sits in the middle of both.<span class="fig-src">Source: Stripe, card authorisation and settlement guide</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="primer">
+    <header class="sec"><h2>Before you start</h2><span class="idx">00</span></header>
+    <dl class="terms">
+      <dt>Issuer</dt>
+      <dd>The customer's bank, the one that gave out the card. It approves or declines each payment and holds the customer's money or credit line.<sup class="ref"><a href="#s2">2</a></sup></dd>
+      <dt>Card network</dt>
+      <dd>Visa, Mastercard and their peers, which carry requests and money between banks.<sup class="ref"><a href="#s2">2</a></sup> They also set the fees the banks on the network charge each other.<sup class="ref"><a href="#s14">14</a></sup></dd>
+      <dt>Acquirer</dt>
+      <dd>The bank on the merchant's side. It receives card payments for the merchant and routes them through the network to the issuer.<sup class="ref"><a href="#s2">2</a></sup></dd>
+      <dt>Authorize, capture</dt>
+      <dd>Authorizing asks the issuer to approve an amount and hold it on the card; capturing tells it to take the held money. The two can happen together or days apart.<sup class="ref"><a href="#s12">12</a></sup></dd>
+      <dt>Merchant of record</dt>
+      <dd>The business legally named as the seller. It owes the sales tax on each sale and carries the liabilities that come with selling.<sup class="ref"><a href="#s17">17</a></sup></dd>
+    </dl>
+  </section>
+
+  <section data-part="mechanism" data-step="1">
+    <header class="sec"><h2>One account carries millions of businesses</h2><span class="idx">01</span></header>
+    <p><span class="inferred">Traditionally each business that takes cards gets its own merchant account at an acquirer, after the bank has reviewed it.</span> A <mark class="subj">payment facilitator</mark>, which is what Stripe is, registers one master merchant account with an acquiring bank and signs businesses up beneath it as sub-merchants.<sup class="ref"><a href="#s3">3</a></sup> Signing up is a web form. Behind it the platform verifies the owner's identity, checks sanctions lists and judges the business's financial health and risk.<sup class="ref"><a href="#s3">3</a></sup></p>
+    <p>The slow part is done once. To process for sub-merchants, a platform has to approach an acquirer with a business plan and win its sponsorship, which takes 3 to 6&nbsp;months at minimum.<sup class="ref"><a href="#s3">3</a></sup> <span class="inferred">Paying that cost once and spreading it over every sub-merchant is what lets a new business take its first card payment on the day it signs up, instead of after its own bank review.</span></p>
+
+    <figure class="fig" data-kind="tree">
+      <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">who answers to whom</span></div>
+      <svg class="grid" role="img" aria-label="Tree: an acquiring bank licensed by the card networks sponsors the platform's one master merchant account; under it sit sub-merchants such as a bakery, a software startup and an online course, millions in all, each checked at signup." viewBox="0 0 378 100.8" width="378" height="100.8">
+<path class="ln" d="M4.2 25.2H16.8"/>
+<path class="ln" d="M29.4 42H42"/>
+<path class="ln" d="M29.4 58.8H42"/>
+<path class="ln" d="M29.4 75.6H42"/>
+<path class="ln" d="M29.4 92.4H42"/>
+<path class="ln" d="M4.2 16.8V25.2"/>
+<path class="ln" d="M29.4 33.6V92.4"/>
+<text class="tx" x="0" y="8.4" textLength="378">acquiring bank, licensed by the card networks</text>
+<text class="tx subj" x="25.2" y="25.2" textLength="310.8">platform: one master merchant account</text>
+<text class="tx" x="50.4" y="42" textLength="50.4">bakery</text>
+<text class="tx" x="193.2" y="42" textLength="100.8">sub-merchant</text>
+<text class="tx" x="50.4" y="58.8" textLength="243.6">software startup sub-merchant</text>
+<text class="tx" x="50.4" y="75.6" textLength="109.2">online course</text>
+<text class="tx" x="193.2" y="75.6" textLength="100.8">sub-merchant</text>
+<text class="tx" x="50.4" y="92.4" textLength="109.2">millions more</text>
+<text class="tx" x="193.2" y="92.4" textLength="184.8">each checked at signup</text>
+</svg>
+      <figcaption>The bank and the networks see one merchant, the platform. The platform sees every business beneath it, and carries their risk.<span class="fig-src">Source: Stripe, Demystifying payfacs</span></figcaption>
+    </figure>
+
+    <p>The catch is that the platform answers for everyone under its account. It must monitor sub-merchants against the networks' rules, block or review suspicious payments, and submit evidence on their behalf when their customers dispute a charge.<sup class="ref"><a href="#s3">3</a></sup> So it keeps checking after signup: Stripe typically schedules a new account's first payout 7 to 14&nbsp;days after its first real payment, depending on industry, country and risk level.<sup class="ref"><a href="#s13">13</a></sup> <span class="inferred">When a sub-merchant suddenly looks risky, holding its balance is how the platform avoids paying for that sub-merchant's losses itself, which is why "Stripe froze my account" stories exist.</span></p>
+  </section>
+
+  <section data-part="mechanism" data-step="2">
+    <header class="sec"><h2>The card number goes around the merchant</h2><span class="idx">02</span></header>
+    <p>The payment form is the platform's code, not the merchant's. Stripe's hosted Checkout page, or its Elements fields placed inside the merchant's page, send the card details from the customer's browser to Stripe's vault, its locked-down card storage, without passing through the merchant's servers.<sup class="ref"><a href="#s4">4</a></sup> What comes back is safe to keep: an ID for the stored card, plus its type, last four digits and expiry date, none of which falls under the card security rules.<sup class="ref"><a href="#s4">4</a></sup> The merchant's server charges that ID, a <mark class="subj">token</mark> standing in for the card, and never handles the number itself.</p>
+    <p>The reason is the cost of touching a card number. Anyone who stores, processes or transmits card data must comply with PCI DSS, the card industry's security standard.<sup class="ref"><a href="#s4">4</a></sup> A business that handles raw card numbers can face more than 300 security controls, dedicated security hardware and outside auditors every year.<sup class="ref"><a href="#s4">4</a></sup> Routing the number around the merchant moves that burden onto Stripe, which an independent assessor certifies every year at the strictest level, PCI Level&nbsp;1.<sup class="ref"><a href="#s4">4</a></sup></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">checkout page</span></div>
+      <svg class="grid" role="img" aria-label="Card capture: the payment form inside the customer's browser belongs to the platform and sends the card number straight to the platform's vault, which returns a token. The browser passes the token and the last 4 digits to the merchant server, which charges the token. The merchant server never sees the card number." viewBox="0 0 411.6 218.4" width="411.6" height="218.4">
+<path class="ln" d="M4.2 25.2H172.2"/>
+<path class="ln" d="M298.2 25.2H407.4"/>
+<path class="ln" d="M21 42H155.4"/>
+<path class="ln" d="M176.4 42H281.4"/>
+<path class="ln" d="M21 75.6H155.4"/>
+<path class="ln" d="M189 75.6H285.6"/>
+<path class="ln" d="M4.2 92.4H172.2"/>
+<path class="ln" d="M298.2 92.4H407.4"/>
+<path class="ln" d="M12.6 159.6H163.8"/>
+<path class="ln" d="M168 176.4H348.6"/>
+<path class="ln" d="M12.6 193.2H163.8"/>
+<path class="ln" d="M4.2 25.2V92.4"/>
+<path class="ln" d="M12.6 159.6V193.2"/>
+<path class="ln" d="M21 42V75.6"/>
+<path class="ln" d="M88.2 100.8V142.8"/>
+<path class="ln" d="M155.4 42V75.6"/>
+<path class="ln" d="M163.8 159.6V193.2"/>
+<path class="ln" d="M172.2 25.2V92.4"/>
+<path class="ln" d="M298.2 25.2V92.4"/>
+<path class="ln" d="M348.6 109.2V176.4"/>
+<path class="ln" d="M407.4 25.2V92.4"/>
+<path class="hd" d="M285.2 42 L279.6 38.8 L279.6 45.2 Z"/>
+<path class="hd" d="M185.2 75.6 L190.8 72.4 L190.8 78.8 Z"/>
+<path class="hd" d="M348.6 101.2 L345.4 106.8 L351.8 106.8 Z"/>
+<path class="hd" d="M88.2 150.8 L85 145.2 L91.4 145.2 Z"/>
+<text class="tx" x="8.4" y="8.4" textLength="151.2">customer's browser</text>
+<text class="tx" x="184.8" y="25.2" textLength="92.4">card number</text>
+<text class="tx subj" x="319.2" y="42" textLength="67.2">platform</text>
+<text class="tx" x="33.6" y="58.8" textLength="109.2">platform form</text>
+<text class="tx" x="327.6" y="58.8" textLength="42">vault</text>
+<text class="tx" x="210" y="92.4" textLength="42">token</text>
+<text class="tx" x="100.8" y="126" textLength="168">token, last 4 digits</text>
+<text class="tx" x="193.2" y="159.6" textLength="100.8">charge token</text>
+<text class="tx" x="25.2" y="176.4" textLength="126">merchant server</text>
+<text class="tx" x="16.8" y="210" textLength="218.4">never sees the card number</text>
+</svg>
+      <figcaption>Two separate trips: the card number goes only to the platform, and the merchant only ever works with the token.<span class="fig-src">Source: Stripe docs, Integration security guide</span></figcaption>
+    </figure>
+
+    <p>The form is only as safe as the page around it. Every script the page loads from another site can run arbitrary code there if that site is compromised, so Stripe advises keeping such scripts off payment pages.<sup class="ref"><a href="#s4">4</a></sup> And a business that builds its own form and posts card numbers to its own server is back inside the full standard, whichever platform it uses.<sup class="ref"><a href="#s4">4</a></sup></p>
+  </section>
+
+  <section data-part="mechanism" data-step="3">
+    <header class="sec"><h2>Each payment is a record that changes state</h2><span class="idx">03</span></header>
+    <p>On Stripe a payment is an object, the <mark class="subj">PaymentIntent</mark>, which the merchant's server creates as soon as it knows the amount, so that every attempt to pay it is recorded.<sup class="ref"><a href="#s5">5</a></sup> It moves through a short list of states: waiting for a payment method, sometimes waiting for the customer to pass an extra check, processing, and succeeded. A decline sends it back to the first state, so the customer can try another card.<sup class="ref"><a href="#s5">5</a></sup></p>
+    <p>It is built as a record because a payment is a conversation, not one request. The customer's bank may ask for an extra check, and bank debits, payments pulled straight from a bank account rather than a card, can take several days to confirm.<sup class="ref"><a href="#s5">5</a></sup> <span class="inferred">A single "charge this card" call that answers yes or no has no way to say "waiting for the customer"; a record with a status does, and the merchant only has to read it.</span></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">one payment · its states</span></div>
+      <svg class="grid" role="img" aria-label="States of one payment: the merchant creates it as requires_payment_method; once a card is entered it may need requires_action for an extra check; then processing; when the bank says yes it is succeeded. A decline sends it back to requires_payment_method to try another card." viewBox="0 0 378 319.2" width="378" height="319.2">
+<path class="ln" d="M4.2 25.2H222.6"/>
+<path class="ln" d="M239.4 42H273"/>
+<path class="ln" d="M4.2 58.8H222.6"/>
+<path class="ln" d="M4.2 109.2H222.6"/>
+<path class="ln" d="M4.2 142.8H222.6"/>
+<path class="ln" d="M4.2 193.2H222.6"/>
+<path class="ln" d="M235.2 210H273"/>
+<path class="ln" d="M4.2 226.8H222.6"/>
+<path class="ln" d="M4.2 277.2H222.6"/>
+<path class="ln" d="M4.2 310.8H222.6"/>
+<path class="ln" d="M4.2 25.2V58.8"/>
+<path class="ln" d="M4.2 109.2V142.8"/>
+<path class="ln" d="M4.2 193.2V226.8"/>
+<path class="ln" d="M4.2 277.2V310.8"/>
+<path class="ln" d="M113.4 67.2V92.4"/>
+<path class="ln" d="M113.4 151.2V176.4"/>
+<path class="ln" d="M113.4 235.2V260.4"/>
+<path class="ln" d="M222.6 25.2V58.8"/>
+<path class="ln" d="M222.6 109.2V142.8"/>
+<path class="ln" d="M222.6 193.2V226.8"/>
+<path class="ln" d="M222.6 277.2V310.8"/>
+<path class="ln" d="M273 42V210"/>
+<path class="hd" d="M235.6 42 L241.2 38.8 L241.2 45.2 Z"/>
+<path class="hd" d="M113.4 100.4 L110.2 94.8 L116.6 94.8 Z"/>
+<path class="hd" d="M113.4 184.4 L110.2 178.8 L116.6 178.8 Z"/>
+<path class="hd" d="M113.4 268.4 L110.2 262.8 L116.6 262.8 Z"/>
+<text class="tx" x="8.4" y="8.4" textLength="235.2">merchant creates the payment</text>
+<text class="tx" x="16.8" y="42" textLength="193.2">requires_payment_method</text>
+<text class="tx" x="126" y="75.6" textLength="100.8">card entered</text>
+<text class="tx" x="285.6" y="92.4" textLength="75.6">declined:</text>
+<text class="tx" x="285.6" y="109.2" textLength="92.4">try another</text>
+<text class="tx" x="16.8" y="126" textLength="126">requires_action</text>
+<text class="tx" x="285.6" y="126" textLength="33.6">card</text>
+<text class="tx" x="126" y="159.6" textLength="134.4">extra check done</text>
+<text class="tx" x="16.8" y="210" textLength="84">processing</text>
+<text class="tx" x="126" y="243.6" textLength="109.2">bank says yes</text>
+<text class="tx subj" x="25.2" y="294" textLength="75.6">succeeded</text>
+</svg>
+      <figcaption>Most card payments go straight from the top state to succeeded; the middle two appear only when the bank wants a check or the money is slow.<span class="fig-src">Source: Stripe docs, How Payment Intents work</span></figcaption>
+    </figure>
+
+    <p>Two failures shape how merchants talk to this record. Connections drop, and a server that resends "create payment" without knowing whether the first request landed can charge twice. The fix is an idempotency key, a random ID the merchant attaches to the request: a retry with the same key gets the saved first response instead of a second payment.<sup class="ref"><a href="#s6">6</a></sup> Keys can be cleared after 24&nbsp;hours, so a much later retry counts as a new request.<sup class="ref"><a href="#s6">6</a></sup></p>
+    <p>The second failure is missing news. Outcomes that arrive later reach the merchant as webhooks, web requests from Stripe to an address on the merchant's server, sent when a bank confirms a payment or a customer disputes one.<sup class="ref"><a href="#s7">7</a></sup> Stripe retries a failed delivery for up to three days, may deliver an event twice and doesn't keep events in order, so the merchant's handler must skip event IDs it has already processed.<sup class="ref"><a href="#s7">7</a></sup> <span class="inferred">A shop that fulfils orders only when the customer's browser returns to its thank-you page loses every order whose customer closed the tab first.</span></p>
+  </section>
+
+  <section data-part="mechanism" data-step="4">
+    <header class="sec"><h2>Risk is scored before the bank is asked</h2><span class="idx">04</span></header>
+    <p>Before a payment goes to the customer's bank, <mark class="subj">Radar</mark>, Stripe's fraud system, gives it a risk score from 0 to 99: the probability that it ends in a fraud dispute or a fraud warning from the bank.<sup class="ref"><a href="#s8">8</a></sup> A default rule blocks payments at the highest risk level.<sup class="ref"><a href="#s8">8</a></sup> A blocked payment is never sent to the issuer for authorization.<sup class="ref"><a href="#s10">10</a></sup> An elevated score is a prompt to review the payment or ask for more verification, not a verdict that it is fraud.<sup class="ref"><a href="#s8">8</a></sup></p>
+    <p>The platform does this rather than leaving it to each shop because it sees what no single shop can. Radar's models train on data from millions of businesses.<sup class="ref"><a href="#s10">10</a></sup> <span class="inferred">A card or device that failed at one shop an hour ago is therefore a signal at the next one.</span> Blocking before authorization also stops a payment that might have turned into a dispute later.<sup class="ref"><a href="#s10">10</a></sup></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 5</span><span class="fig-hint">every payment attempt</span></div>
+      <svg class="grid" role="img" aria-label="Risk screening: every payment attempt gets a risk score from 0 to 99. Normal scores go on to the bank, elevated scores go to review or an extra check, and the highest are blocked, so the bank is never asked." viewBox="0 0 378 235.2" width="378" height="235.2">
+<path class="ln" d="M79.8 58.8H256.2"/>
+<path class="ln" d="M79.8 92.4H256.2"/>
+<path class="ln" d="M46.2 109.2H281.4"/>
+<path class="ln" d="M4.2 159.6H96.6"/>
+<path class="ln" d="M121.8 159.6H214.2"/>
+<path class="ln" d="M239.4 159.6H331.8"/>
+<path class="ln" d="M4.2 210H96.6"/>
+<path class="ln" d="M121.8 210H214.2"/>
+<path class="ln" d="M239.4 210H331.8"/>
+<path class="ln" d="M4.2 159.6V210"/>
+<path class="ln" d="M46.2 109.2V142.8"/>
+<path class="ln" d="M79.8 58.8V92.4"/>
+<path class="ln" d="M96.6 159.6V210"/>
+<path class="ln" d="M121.8 159.6V210"/>
+<path class="ln" d="M163.8 92.4V142.8"/>
+<path class="ln" d="M172.2 16.8V42"/>
+<path class="ln" d="M214.2 159.6V210"/>
+<path class="ln" d="M239.4 159.6V210"/>
+<path class="ln" d="M256.2 58.8V92.4"/>
+<path class="ln" d="M281.4 109.2V142.8"/>
+<path class="ln" d="M331.8 159.6V210"/>
+<path class="hd" d="M172.2 50 L169 44.4 L175.4 44.4 Z"/>
+<path class="hd" d="M46.2 150.8 L43 145.2 L49.4 145.2 Z"/>
+<path class="hd" d="M163.8 150.8 L160.6 145.2 L167 145.2 Z"/>
+<path class="hd" d="M281.4 150.8 L278.2 145.2 L284.6 145.2 Z"/>
+<text class="tx" x="109.2" y="8.4" textLength="126">payment attempt</text>
+<text class="tx subj" x="100.8" y="75.6" textLength="134.4">risk score, 0–99</text>
+<text class="tx" x="58.8" y="126" textLength="50.4">normal</text>
+<text class="tx" x="176.4" y="126" textLength="67.2">elevated</text>
+<text class="tx" x="294" y="126" textLength="58.8">highest</text>
+<text class="tx" x="16.8" y="176.4" textLength="58.8">ask the</text>
+<text class="tx" x="134.4" y="176.4" textLength="50.4">review</text>
+<text class="tx subj" x="260.4" y="176.4" textLength="42">block</text>
+<text class="tx" x="16.8" y="193.2" textLength="33.6">bank</text>
+<text class="tx" x="134.4" y="193.2" textLength="67.2">or check</text>
+<text class="tx" x="243.6" y="226.8" textLength="134.4">bank never asked</text>
+</svg>
+      <figcaption>Only the left branch ever reaches the customer's bank. A block is decided entirely inside the platform.<span class="fig-src">Source: Stripe docs, Radar risk settings; Declines</span></figcaption>
+    </figure>
+
+    <p><span class="inferred">Every threshold trades fraud for lost sales: block more, and more good customers are turned away.</span> The sharpest attack is card testing, where scripts push many small payments with stolen card numbers through a shop to learn which cards still work, then use or resell the good ones.<sup class="ref"><a href="#s9">9</a></sup> A leaked secret API key, the password the merchant's server uses to call Stripe, lets testers do it through the merchant's own account.<sup class="ref"><a href="#s9">9</a></sup> When Stripe detects an account under fraud pressure, it blocks more elevated-risk payments for a while and returns to the normal threshold once the threat passes.<sup class="ref"><a href="#s8">8</a></sup></p>
+  </section>
+
+  <section data-part="mechanism" data-step="5">
+    <header class="sec"><h2>The customer's bank says yes or no</h2><span class="idx">05</span></header>
+    <p>The platform sends an <mark class="subj">authorization</mark> request through the card network to the issuer.<sup class="ref"><a href="#s2">2</a></sup> The issuer checks that the card is valid and not reported lost or stolen, that the account has the funds or credit, and that the details match its records, and the answer comes back the same way, usually within a few seconds.<sup class="ref"><a href="#s2">2</a></sup> On a yes, the customer's available balance drops at once, although no money has moved yet.<sup class="ref"><a href="#s2">2</a></sup></p>
+
+    <figure class="fig" data-kind="sequence">
+      <div class="fig-head"><span class="fig-tag">FIG. 6</span><span class="fig-hint">one card payment · time runs down</span></div>
+      <svg role="img" aria-label="Authorization of a 40 dollar payment: the customer gives the card to the platform; the platform asks the card network to authorize 40 dollars, and the network asks the issuer; the issuer answers yes and holds 40 dollars; the yes returns through the network to the platform, which tells the customer the payment went through." width="420" height="214" viewBox="0 0 420 214">
+        <text class="lbl" x="30" y="12" text-anchor="middle">CUSTOMER</text><text class="lbl" x="150" y="12" text-anchor="middle">PLATFORM</text><text class="lbl" x="270" y="12" text-anchor="middle">NETWORK</text><text class="lbl" x="390" y="12" text-anchor="middle">ISSUER</text>
+        <path class="life" d="M30 22 V210 M150 22 V210 M270 22 V210 M390 22 V210"/>
+        <line class="ln" x1="30" y1="50" x2="144" y2="50"/><path class="solid" d="M150 50 l-6 -3 v6 z"/><text x="90" y="44" text-anchor="middle">card, $40</text>
+        <line class="ln" x1="150" y1="84" x2="264" y2="84"/><path class="solid" d="M270 84 l-6 -3 v6 z"/><text x="210" y="78" text-anchor="middle">authorize $40</text>
+        <line class="ln" x1="270" y1="108" x2="384" y2="108"/><path class="solid" d="M390 108 l-6 -3 v6 z"/><text x="330" y="102" text-anchor="middle">authorize $40</text>
+        <line class="ln subj" x1="390" y1="142" x2="276" y2="142"/><path class="solid subj" d="M270 142 l6 -3 v6 z"/><text class="subj" x="330" y="136" text-anchor="middle">yes, hold $40</text>
+        <line class="ln subj" x1="270" y1="166" x2="156" y2="166"/><path class="solid subj" d="M150 166 l6 -3 v6 z"/><text class="subj" x="210" y="160" text-anchor="middle">yes</text>
+        <line class="ln subj" x1="150" y1="200" x2="36" y2="200"/><path class="solid subj" d="M30 200 l6 -3 v6 z"/><text class="subj" x="90" y="194" text-anchor="middle">paid</text>
+      </svg>
+      <figcaption>The platform doesn't decide; it carries the question to the issuer and the answer back. A yes is a hold on the customer's money, not a transfer.<span class="fig-src">Source: Stripe, card authorisation and settlement guide</span></figcaption>
+    </figure>
+
+    <p>Only the issuer can decide, because only it knows the customer's account: its own models weigh spending habits, the balance and the card details on every request.<sup class="ref"><a href="#s10">10</a></sup> <span class="inferred">The network in the middle lets any acquirer reach any issuer over one connection, instead of each bank linking to every other bank.</span> In the European Economic Area a second rule applies. Since 14 September 2019, Strong Customer Authentication has required online card payments to use 3D Secure, a step where the bank asks the customer to prove it is really them.<sup class="ref"><a href="#s11">11</a></sup> In return, 3D Secure moves the liability for a fraudulent payment off the merchant.<sup class="ref"><a href="#s5">5</a></sup></p>
+    <p>A decline comes back as a short code: insufficient funds, a lost or stolen card, or no specific reason at all.<sup class="ref"><a href="#s10">10</a></sup> <span class="inferred">The issuer's models are its own, so a merchant can watch its decline rate rise without ever learning why.</span> In Europe, a bank may also decline a payment that skipped the customer check when one was required.<sup class="ref"><a href="#s11">11</a></sup></p>
+  </section>
+
+  <section data-part="mechanism" data-step="6">
+    <header class="sec"><h2>The money moves later, minus fees</h2><span class="idx">06</span></header>
+    <p>Capture turns the hold into a charge. Most payments are captured at once, but a hotel can authorize at booking and capture at checkout.<sup class="ref"><a href="#s12">12</a></sup> Captured payments then <mark class="subj">settle</mark>: the money itself moves from the issuer to the merchant's side.<sup class="ref"><a href="#s2">2</a></sup> On the way, the acquirer pays the issuer an interchange fee, set by the card networks and averaging about 2% of the sale in the US.<sup class="ref"><a href="#s14">14</a></sup> The platform credits what is left, minus its own fee, to the merchant's balance and pays it out to the merchant's bank on a schedule.<sup class="ref"><a href="#s13">13</a></sup></p>
+    <p>Approval and money are split because they need different speeds. <span class="inferred">The approval has to happen while the customer waits at checkout; the money can travel in bulk transfers between banks, which is cheaper than moving it one payment at a time.</span> The split also lets a merchant capture only what it actually ships.<sup class="ref"><a href="#s12">12</a></sup> With daily payouts and Stripe's standard US timing, a payment is paid out 2 business days after it is captured.<sup class="ref"><a href="#s13">13</a></sup></p>
+
+    <figure class="fig" data-kind="timeline">
+      <div class="fig-head"><span class="fig-tag">FIG. 7</span><span class="fig-hint">US standard timing · business days</span></div>
+      <div class="tl" role="img" aria-label="Timeline of one payment's money in business days: authorization and capture take seconds at day 0; the money sits pending in the merchant's platform balance from day 0 to day 2; the payout to the merchant's bank runs from day 2 to about day 3.">
+        <span></span>
+        <div class="tl-axis"><span style="--at:0%">0</span><span style="--at:33.3%">1</span><span style="--at:66.7%">2</span><span style="--at:100%">3 days</span></div>
+        <span></span>
+        <div class="tl-bracket"><span class="tl-seg" style="--a:0%;--b:100%"></span><span class="tl-tick" style="--at:0%"></span><span class="tl-tick" style="--at:33.3%"></span><span class="tl-tick" style="--at:66.7%"></span><span class="tl-tick" style="--at:100%"></span></div>
+        <span>authorize, capture</span><div class="tl-track"><span class="tl-bar" style="--a:0%;--b:1%"></span></div>
+        <span class="subj">pending in balance</span><div class="tl-track" data-subj><span class="tl-bar" style="--a:0%;--b:66.7%"></span></div>
+        <span>payout to bank</span><div class="tl-track"><span class="tl-bar" style="--a:66.7%;--b:100%"></span></div>
+      </div>
+      <figcaption>The customer waits seconds; the merchant waits days. In between, the money sits as pending in the merchant's platform balance.<span class="fig-src">Source: Stripe docs, Payouts · arrival of the payout illustrative</span></figcaption>
+    </figure>
+
+    <p>A hold doesn't last. Online card authorizations typically expire after 7&nbsp;days; if the merchant hasn't captured by then, the funds are released and the payment is cancelled.<sup class="ref"><a href="#s12">12</a></sup> Fees also change with place: the EU caps interchange on personal cards at 0.3% for credit and 0.2% for debit, so the same sale costs a different amount to accept in Europe than in the US.<sup class="ref"><a href="#s14">14</a></sup></p>
+  </section>
+
+  <section data-part="mechanism" data-step="7">
+    <header class="sec"><h2>Disputes pull the money back</h2><span class="idx">07</span></header>
+    <p>A customer who contests a payment does it with their own bank, not with the merchant. The issuer starts a <mark class="subj">chargeback</mark>, a reversal through the card network: the network debits Stripe, and Stripe debits the merchant's balance for the amount plus a dispute fee.<sup class="ref"><a href="#s15">15</a></sup> The merchant then has 7 to 21&nbsp;days to send evidence, and the issuer takes 60 to 75&nbsp;days to decide.<sup class="ref"><a href="#s15">15</a></sup> The decision is the issuer's alone; Stripe has no say in it.<sup class="ref"><a href="#s15">15</a></sup></p>
+
+    <figure class="fig" data-kind="sequence">
+      <div class="fig-head"><span class="fig-tag">FIG. 8</span><span class="fig-hint">one dispute · time runs down</span></div>
+      <svg role="img" aria-label="A 40 dollar dispute: the customer disputes the charge with the issuer; the issuer files a chargeback with the network; the network takes 40 dollars from the platform; the platform takes 40 dollars plus a fee from the merchant. The merchant sends evidence to the platform, which passes it to the issuer, and the issuer's decision comes back after 60 to 75 days." width="420" height="252" viewBox="0 0 420 252">
+        <text class="lbl" x="30" y="12" text-anchor="middle">CUSTOMER</text><text class="lbl" x="120" y="12" text-anchor="middle">ISSUER</text><text class="lbl" x="210" y="12" text-anchor="middle">NETWORK</text><text class="lbl" x="300" y="12" text-anchor="middle">PLATFORM</text><text class="lbl" x="390" y="12" text-anchor="middle">MERCHANT</text>
+        <path class="life" d="M30 22 V248 M120 22 V248 M210 22 V248 M300 22 V248 M390 22 V248"/>
+        <line class="ln" x1="30" y1="50" x2="114" y2="50"/><path class="solid" d="M120 50 l-6 -3 v6 z"/><text x="75" y="44" text-anchor="middle">dispute</text>
+        <line class="ln" x1="120" y1="78" x2="204" y2="78"/><path class="solid" d="M210 78 l-6 -3 v6 z"/><text x="165" y="72" text-anchor="middle">chargeback</text>
+        <line class="ln" x1="210" y1="106" x2="294" y2="106"/><path class="solid" d="M300 106 l-6 -3 v6 z"/><text x="255" y="100" text-anchor="middle">−$40</text>
+        <line class="ln subj" x1="300" y1="134" x2="384" y2="134"/><path class="solid subj" d="M390 134 l-6 -3 v6 z"/><text class="subj" x="345" y="128" text-anchor="middle">−$40 − fee</text>
+        <line class="ln" x1="390" y1="168" x2="306" y2="168"/><path class="solid" d="M300 168 l6 -3 v6 z"/><text x="345" y="162" text-anchor="middle">evidence</text>
+        <line class="ln" x1="300" y1="196" x2="126" y2="196"/><path class="solid" d="M120 196 l6 -3 v6 z"/><text x="255" y="190" text-anchor="middle">evidence</text>
+        <line class="ln" x1="120" y1="236" x2="384" y2="236"/><path class="solid" d="M390 236 l-6 -3 v6 z"/><text x="255" y="230" text-anchor="middle">decision, 60–75 days</text>
+      </svg>
+      <figcaption>The money leaves the merchant on day one. The evidence travels back and waits up to 75&nbsp;days for the issuer's decision.<span class="fig-src">Source: Stripe docs, How disputes work</span></figcaption>
+    </figure>
+
+    <p>The rules favour the cardholder. Customers can usually dispute up to 120&nbsp;days after paying, and for something paid in advance, such as a ticket, the window starts on the event date.<sup class="ref"><a href="#s15">15</a></sup> <span class="inferred">That protection is part of why people type their card number into shops they have never used before.</span> The network takes the money from Stripe, not from the merchant, and Stripe recovers it from the merchant's balance straight away.<sup class="ref"><a href="#s15">15</a></sup></p>
+    <p>The industry treats dispute activity above 0.75% of payments as excessive, and disputes count whether they are won or lost.<sup class="ref"><a href="#s16">16</a></sup> A merchant above that line for months can land in the networks' monitoring programs, pay fines and lose the ability to take cards with other payment companies too.<sup class="ref"><a href="#s16">16</a></sup> <span class="inferred">If a merchant's balance can't cover a lost dispute, the platform pays the network itself, which is the real reason behind the held payouts in step&nbsp;1.</span></p>
+  </section>
+
+  <section data-part="mechanism" data-step="8">
+    <header class="sec"><h2>A merchant of record becomes the seller</h2><span class="idx">08</span></header>
+    <p><mark class="subj">Polar</mark> adds one more layer on top. As merchant of record it takes on the international sales taxes of each sale: it registers, files and pays them in the places where it is registered, so the developer doesn't track where tax is owed.<sup class="ref"><a href="#s17">17</a></sup> It calculates the tax with Stripe Tax, Stripe's tax calculation service, and the payments themselves run on Stripe.<sup class="ref"><a href="#s17">17</a></sup> The developer gets a payout minus Polar's fee, from 5% + 50¢ per sale on the free plan down to 3.4% + 30¢ on the $400-a-month plan, plus 1.5% for cards from outside the US.<sup class="ref"><a href="#s18">18</a></sup></p>
+    <p>The reason is that selling software online creates tax duties wherever the customers live. A business outside the EU that sells services to EU consumers can register for VAT, the EU's sales tax, in a single member state under the One Stop Shop instead of in each one.<sup class="ref"><a href="#s20">20</a></sup> It files one return there and pays that one state the VAT due across the EU.<sup class="ref"><a href="#s19">19</a></sup> In the US, the Supreme Court's 2018 Wayfair ruling let states tax sales by sellers with no physical presence; South Dakota's threshold was $100,000 in sales or 200 transactions.<sup class="ref"><a href="#s21">21</a></sup> <span class="inferred">A merchant of record registers and files once for all its sellers, which a two-person company could not afford to do in dozens of places.</span></p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 9</span><span class="fig-hint">who the seller is</span></div>
+      <svg class="grid" role="img" aria-label="Two models compared. With a payment service provider such as Stripe, the customer pays through Stripe, which moves the money and pays you out, and you are the seller. With a merchant of record such as Polar, built on Stripe, Polar is the seller and pays you out for the product." viewBox="0 0 436.8 184.8" width="436.8" height="184.8">
+<path class="ln" d="M4.2 25.2H96.6"/>
+<path class="ln" d="M163.8 25.2H273"/>
+<path class="ln" d="M348.6 25.2H424.2"/>
+<path class="ln" d="M100.8 42H147"/>
+<path class="ln" d="M277.2 42H331.8"/>
+<path class="ln" d="M4.2 58.8H96.6"/>
+<path class="ln" d="M163.8 58.8H273"/>
+<path class="ln" d="M348.6 58.8H424.2"/>
+<path class="ln" d="M4.2 126H96.6"/>
+<path class="ln" d="M163.8 126H273"/>
+<path class="ln" d="M348.6 126H424.2"/>
+<path class="ln" d="M100.8 142.8H147"/>
+<path class="ln" d="M277.2 142.8H331.8"/>
+<path class="ln" d="M4.2 159.6H96.6"/>
+<path class="ln" d="M163.8 159.6H273"/>
+<path class="ln" d="M348.6 159.6H424.2"/>
+<path class="ln" d="M4.2 25.2V58.8"/>
+<path class="ln" d="M4.2 126V159.6"/>
+<path class="ln" d="M96.6 25.2V58.8"/>
+<path class="ln" d="M96.6 126V159.6"/>
+<path class="ln" d="M163.8 25.2V58.8"/>
+<path class="ln" d="M163.8 126V159.6"/>
+<path class="ln" d="M273 25.2V58.8"/>
+<path class="ln" d="M273 126V159.6"/>
+<path class="ln" d="M348.6 25.2V58.8"/>
+<path class="ln" d="M348.6 126V159.6"/>
+<path class="ln" d="M424.2 25.2V58.8"/>
+<path class="ln" d="M424.2 126V159.6"/>
+<path class="hd" d="M150.8 42 L145.2 38.8 L145.2 45.2 Z"/>
+<path class="hd" d="M335.6 42 L330 38.8 L330 45.2 Z"/>
+<path class="hd" d="M150.8 142.8 L145.2 139.6 L145.2 146 Z"/>
+<path class="hd" d="M335.6 142.8 L330 139.6 L330 146 Z"/>
+<text class="tx" x="8.4" y="8.4" textLength="268.8">payment service provider: Stripe</text>
+<text class="tx" x="109.2" y="25.2" textLength="33.6">pays</text>
+<text class="tx" x="285.6" y="25.2" textLength="50.4">payout</text>
+<text class="tx" x="16.8" y="42" textLength="67.2">customer</text>
+<text class="tx" x="193.2" y="42" textLength="50.4">Stripe</text>
+<text class="tx subj" x="369.6" y="42" textLength="25.2">you</text>
+<text class="tx" x="168" y="75.6" textLength="92.4">moves money</text>
+<text class="tx subj" x="344.4" y="75.6" textLength="84">the seller</text>
+<text class="tx" x="8.4" y="109.2" textLength="352.8">merchant of record: Polar, built on Stripe</text>
+<text class="tx" x="109.2" y="126" textLength="33.6">pays</text>
+<text class="tx" x="285.6" y="126" textLength="50.4">payout</text>
+<text class="tx" x="16.8" y="142.8" textLength="67.2">customer</text>
+<text class="tx subj" x="193.2" y="142.8" textLength="42">Polar</text>
+<text class="tx" x="369.6" y="142.8" textLength="25.2">you</text>
+<text class="tx subj" x="168" y="176.4" textLength="84">the seller</text>
+<text class="tx" x="344.4" y="176.4" textLength="92.4">the product</text>
+</svg>
+      <figcaption>The money takes much the same route both times. What changes is whose name is on the sale, and with it who owes the tax.<span class="fig-src">Source: Polar docs, Merchant of record</span></figcaption>
+    </figure>
+
+    <p>The convenience costs money and control. Polar's own comparison lists higher fees per payment and less flexibility for advanced business and pricing models.<sup class="ref"><a href="#s17">17</a></sup> The developer still owes income tax on its revenue at home.<sup class="ref"><a href="#s17">17</a></sup> Disputes still happen, at $15 each whatever the outcome.<sup class="ref"><a href="#s18">18</a></sup> <span class="inferred">And because Polar is the one legally selling the product, Polar decides which products it is willing to sell.</span></p>
+  </section>
+
+  <section data-part="finish">
+    <header class="sec"><h2>What it comes down to</h2><span class="idx">09</span></header>
+    <p><span class="inferred">One idea carries the whole system: <strong>a payment platform is a licensed middleman that turns a slow, bank-to-bank process into one record behind an API, and earns its fee by carrying risk</strong>. It carries the security risk with tokens, the fraud risk with scores, the credit risk by paying out before disputes close and, as a merchant of record, the tax risk.</span></p>
+    <p>Three of its patterns transfer to other systems:</p>
+    <ol class="steps">
+      <li><span><b>Aggregate under one licence.</b> <span class="inferred">One party that passed the hard checks carries many small ones, and then has to watch them, as app stores and marketplaces do.</span></span></li>
+      <li><span><b>Decide fast, settle slow.</b> <span class="inferred">Approve while the user waits, and move the expensive thing in batches later.</span></span></li>
+      <li><span><b>Make retries safe.</b> Idempotency keys on the way in<sup class="ref"><a href="#s6">6</a></sup>, and events that may repeat, de-duplicated by ID on the way out.<sup class="ref"><a href="#s7">7</a></sup></span></li>
+    </ol>
+    <p><b>Going deeper.</b> <span class="inferred">The main variants are the two this page compares, payment service providers where you stay the seller and merchants of record where they do, plus marketplace setups in which one platform collects payments for many sellers and splits them.</span> Three numbers matter in practice: interchange of about 2% in the US against capped 0.2 to 0.3% in the EU<sup class="ref"><a href="#s14">14</a></sup>, dispute activity kept under 0.75%<sup class="ref"><a href="#s16">16</a></sup>, and authorizations that last about 7&nbsp;days.<sup class="ref"><a href="#s12">12</a></sup> Read Stripe's guide to payment facilitators next, then its page on how disputes work, then Polar's merchant of record page (sources 3, 15 and 17).</p>
+    <p><b>Limits.</b> Stripe doesn't publish how it routes a payment between acquiring banks or what its fraud models weigh, so this page explains the documented architecture of such a platform, and sentences marked ~ are reconstruction. Bank transfers, wallets such as Apple Pay, subscriptions, in-person card readers and the history of the networks are left out. The fees and timings quoted are published defaults; payout timing varies by country and account.<sup class="ref"><a href="#s13">13</a></sup></p>
+  </section>
+
+  <section data-part="sources">
+    <header class="sec"><h2>Sources</h2><span class="idx">10</span></header>
+    <ol class="sources">
+      <li id="s1"><span><a href="https://stripe.com/newsroom/news/stripe-2024-update">Stripe's total payment volume reaches $1.4T</a>, Stripe newsroom. 2024 volume and share of global GDP.<span class="label">stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s2"><span><a href="https://stripe.com/resources/more/credit-card-payment-authorization-and-transaction-settlement-process">Credit card payment authorisation and transaction settlement process</a>, Stripe. The parties, what the issuer checks, capture and settlement.<span class="label">stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s3"><span><a href="https://stripe.com/guides/payfacs">Demystifying payfacs</a>, Stripe guide. Master merchant account, sub-merchant duties, acquirer sponsorship.<span class="label">stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s4"><span><a href="https://docs.stripe.com/security/guide">Integration security guide</a>, Stripe docs. PCI DSS, low-risk integrations, third-party scripts.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s5"><span><a href="https://docs.stripe.com/payments/paymentintents/lifecycle">How Payment Intents and Setup Intents work</a>, Stripe docs. States of a payment, 3D Secure.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s6"><span><a href="https://docs.stripe.com/api/idempotent_requests">Idempotent requests</a>, Stripe API reference.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s7"><span><a href="https://docs.stripe.com/webhooks">Receive Stripe events in your webhook endpoint</a>, Stripe docs. Retries, ordering, duplicates.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s8"><span><a href="https://docs.stripe.com/radar/risk-settings">Radar risk settings</a>, Stripe docs. Risk scores, risk levels, dynamic thresholds.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s9"><span><a href="https://docs.stripe.com/disputes/prevention/card-testing">Card testing</a>, Stripe docs.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s10"><span><a href="https://docs.stripe.com/declines">Declines</a>, Stripe docs. Issuer declines and blocked payments.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s11"><span><a href="https://docs.stripe.com/strong-customer-authentication">Strong Customer Authentication</a>, Stripe docs.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s12"><span><a href="https://docs.stripe.com/payments/place-a-hold-on-a-payment-method">Place a hold on a payment method</a>, Stripe docs. Separate authorization and capture, validity windows.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s13"><span><a href="https://docs.stripe.com/payouts">Payouts</a>, Stripe docs. First payout, schedules, settlement timing.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s14"><span><a href="https://en.wikipedia.org/wiki/Interchange_fee">Interchange fee</a>, Wikipedia.<span class="label">en.wikipedia.org · read 3 Nov 2026</span></span></li>
+      <li id="s15"><span><a href="https://docs.stripe.com/disputes/how-disputes-work">How disputes work</a>, Stripe docs.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s16"><span><a href="https://docs.stripe.com/disputes/measuring">Measuring disputes</a>, Stripe docs. Dispute activity and monitoring programs.<span class="label">docs.stripe.com · read 3 Nov 2026</span></span></li>
+      <li id="s17"><span><a href="https://polar.sh/docs/merchant-of-record/introduction">Merchant of record</a>, Polar docs. Tax liability, comparison with a payment service provider.<span class="label">polar.sh · read 3 Nov 2026</span></span></li>
+      <li id="s18"><span><a href="https://polar.sh/docs/merchant-of-record/fees">Fees</a>, Polar docs.<span class="label">polar.sh · read 3 Nov 2026</span></span></li>
+      <li id="s19"><span><a href="https://vat-one-stop-shop.ec.europa.eu/one-stop-shop/declare-and-pay-oss_en">Declare and pay OSS</a>, European Commission VAT One Stop Shop portal.<span class="label">ec.europa.eu · read 3 Nov 2026</span></span></li>
+      <li id="s20"><span><a href="https://www.revenue.ie/en/vat/vat-ecommerce/non-union-scheme/index.aspx">Non-Union scheme</a>, Irish Revenue.<span class="label">revenue.ie · read 3 Nov 2026</span></span></li>
+      <li id="s21"><span><a href="https://en.wikipedia.org/wiki/South_Dakota_v._Wayfair,_Inc.">South Dakota v. Wayfair, Inc.</a>, Wikipedia.<span class="label">en.wikipedia.org · read 3 Nov 2026</span></span></li>
+    </ol>
+    <p class="label key">~ inferred, not sourced</p>
+  </section>
+
+</main>
+</body>
+</html>

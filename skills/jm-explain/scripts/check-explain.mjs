@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const RULES = {
   // structure (R2, R9)
-  "part-missing": ["FAIL", "add the missing <section data-part=\"...\">; the page runs prompt, problem, primer, mechanism x4-7, finish, sources"],
+  "part-missing": ["FAIL", "add the missing <section data-part=\"...\">; the page runs prompt, problem, primer, mechanism x4-8, finish, sources"],
   "part-order": ["FAIL", "reorder the parts to prompt, problem, primer, mechanism..., finish, sources, with the mechanism steps contiguous"],
   "part-duplicate": ["FAIL", "keep one of each part; only mechanism repeats"],
   "part-unknown": ["FAIL", "use only prompt, problem, primer, mechanism, finish or sources, and never nest parts"],
@@ -22,11 +22,11 @@ const RULES = {
   "problem-paras": ["FAIL", "write 2 to 4 short paragraphs: what it is, why it exists, what problem it solves"],
   "problem-figure": ["FAIL", "end the problem part with exactly one overview figure, after its paragraphs"],
   "primer-terms": ["FAIL", "put 2 to 6 terms in <dl class=\"terms\"> inside the primer part"],
-  "mechanism-figure": ["FAIL", "pair each mechanism step with at least one paragraph and exactly one figure"],
+  "mechanism-figure": ["FAIL", "pair each mechanism step with at least one paragraph and one figure, or two when the why needs its own picture"],
   "mechanism-step": ["FAIL", "number the mechanism sections data-step=\"1\"..\"N\" in document order"],
-  "step-count": ["WARN", "scope to the question: 4 to 7 mechanism steps"],
-  "figure-count": ["WARN", "use one figure per step, one overview and at most one extra"],
-  "word-count": ["WARN", "aim for 900 to 1,400 words; cut steps, tables or paragraphs that the question doesn't need"],
+  "step-count": ["WARN", "scope to the question: 5 to 8 mechanism steps, 4 for one narrow mechanism"],
+  "figure-count": ["WARN", "use one or two figures per step plus the overview"],
+  "word-count": ["WARN", "aim for 2,000 to 4,000 words: each step says how, why and what breaks it; cut specifics the question doesn't need"],
   // colour (R3)
   "color-literal": ["FAIL", "replace the literal with var(--token); literals live only in the top-level :root token block"],
   "token-missing": ["FAIL", "copy the :root token block from assets/template.html unchanged"],
@@ -44,14 +44,18 @@ const RULES = {
   "accent-chrome": ["WARN", "keep the accent on the subject (.subj, [data-subj], .val), not on headings, tags, prompt or links"],
   // figures (R4)
   "fig-class": ["FAIL", "give every <figure> class=\"fig\""],
-  "fig-kind": ["FAIL", "set data-kind to one of timeline, ascii, tree, stack, sequence, chart, units, table, schematic, panel"],
+  "fig-kind": ["FAIL", "set data-kind to one of timeline, ascii, tree, stack, sequence, chart, units, table, schematic, panel, motion"],
   "fig-tag": ["FAIL", "give the figure one <span class=\"fig-tag\">FIG. n</span>"],
   "fig-order": ["FAIL", "number the FIG. tags 1..N in document order"],
   "fig-caption": ["FAIL", "give the figure exactly one <figcaption>"],
   "fig-role": ["FAIL", "remove role from <figure>; the body carries role=\"img\""],
-  "fig-body": ["FAIL", "use one body: <svg role=\"img\" aria-label>, <div class=\"ascii\" role=\"img\" aria-label><pre aria-hidden=\"true\">, a div grid with role=\"img\" aria-label, a <table> (table kind), or (data-interactive) an svg with a <title>"],
+  "fig-body": ["FAIL", "use one body: <svg role=\"img\" aria-label>, <div class=\"ascii\" role=\"img\" aria-label><pre aria-hidden=\"true\">, a div grid with role=\"img\" aria-label, a <table> (table kind), (panel) an svg with a <title>, or (motion) exactly one <svg role=\"img\" aria-label>"],
   "fig-control": ["FAIL", "label the control with aria-label, a <label> or visible button text"],
-  "fig-interactive": ["FAIL", "keep at most one data-interactive figure per page"],
+  "fig-interactive": ["FAIL", "keep at most one interactive figure (panel or motion) per page; the gallery may show one of each"],
+  "motion-steps": ["FAIL", "give the motion figure one <ol class=\"motion-steps\"> with 2 to 8 <li>, one short sentence per step"],
+  "motion-at": ["FAIL", "write data-at and data-only as a step n, a range n-m or a list (1,4-5) inside 1..N, the number of motion steps; every .tok needs a data-at"],
+  "motion-path": ["FAIL", "give every .tok a data-path=\"#id\" naming a path, line or shape with that id in the same svg"],
+  "motion-script": ["FAIL", "copy the /* jm-explain motion v1 */ <script> from the end of assets/figures.html into the page, unchanged"],
   "ascii-width": ["FAIL", "redraw the ascii figure within 56 columns (svg.ah counts as 1)"],
   "ascii-pre": ["WARN", "render ascii and tree figures with scripts/ascii-figure.mjs; box-drawing glyphs in a pre never join"],
   "svg-size": ["WARN", "set the body svg width to its viewBox width (with max-width:100%) so it never scales up"],
@@ -72,7 +76,9 @@ const GALLERY_SKIP = new Set([
 ]);
 
 const PART_ORDER = ["prompt", "problem", "primer", "mechanism", "finish", "sources"];
-const FIG_KINDS = new Set(["timeline", "ascii", "tree", "stack", "sequence", "chart", "units", "table", "schematic", "panel"]);
+const FIG_KINDS = new Set(["timeline", "ascii", "tree", "stack", "sequence", "chart", "units", "table", "schematic", "panel", "motion"]);
+const MOTION_SCRIPT = "/* jm-explain motion v1 */";
+const SVG_SHAPES = new Set(["path", "line", "polyline", "polygon", "rect", "circle", "ellipse"]);
 
 // ---------- CLI ----------
 
@@ -645,18 +651,24 @@ const steps = byName("mechanism");
 steps.forEach((p, i) => {
   const figs = elements(p, (e) => e.tag === "figure");
   const paras = elements(p, (e) => e.tag === "p" && notInFigure(e));
-  if (figs.length !== 1 || !paras.length) report("mechanism-figure", `step ${i + 1} has ${paras.length} paragraphs and ${figs.length} figures (${at(p)})`);
+  if (figs.length < 1 || figs.length > 2 || !paras.length) report("mechanism-figure", `step ${i + 1} has ${paras.length} paragraphs and ${figs.length} figures (${at(p)})`);
   if (p.attrs["data-step"] !== String(i + 1)) report("mechanism-step", `mechanism ${i + 1} has data-step="${p.attrs["data-step"] ?? ""}" (${at(p)})`, `set data-step="${i + 1}"`);
 });
-if (steps.length && (steps.length < 4 || steps.length > 7)) report("step-count", `${steps.length} mechanism steps`);
+if (steps.length && (steps.length < 4 || steps.length > 8)) report("step-count", `${steps.length} mechanism steps`);
 const figures = all.filter((e) => e.tag === "figure");
-if (steps.length && (figures.length < steps.length + 1 || figures.length > steps.length + 2)) {
-  report("figure-count", `${figures.length} figures for ${steps.length} steps (expected ${steps.length + 1} to ${steps.length + 2})`);
+if (steps.length && (figures.length < steps.length + 1 || figures.length > 2 * steps.length + 1)) {
+  report("figure-count", `${figures.length} figures for ${steps.length} steps (expected ${steps.length + 1} to ${2 * steps.length + 1})`);
 }
 
 // figures (R4)
-const interactive = figures.filter((f) => f.attrs["data-interactive"] !== undefined);
-if (interactive.length > 1) report("fig-interactive", `${interactive.length} data-interactive figures (${interactive.map(at).join(", ")})`);
+const isMotion = (f) => f.attrs["data-kind"] === "motion";
+const interactive = figures.filter((f) => f.attrs["data-interactive"] !== undefined || isMotion(f));
+if (gallery) {
+  for (const kind of new Set(interactive.map((f) => f.attrs["data-kind"]))) {
+    const same = interactive.filter((f) => f.attrs["data-kind"] === kind);
+    if (same.length > 1) report("fig-interactive", `${same.length} interactive ${kind} figures (${same.map(at).join(", ")})`);
+  }
+} else if (interactive.length > 1) report("fig-interactive", `${interactive.length} interactive figures (${interactive.map(at).join(", ")})`);
 const nonEmpty = (v) => typeof v === "string" && v.trim() !== "";
 function figBodies(fig) {
   const out = [];
@@ -688,7 +700,7 @@ function bodyProblem(b, isInteractive, kind) {
 }
 figures.forEach((fig, i) => {
   const name = `FIG ${i + 1} (${at(fig)})`;
-  const isInteractive = fig.attrs["data-interactive"] !== undefined;
+  const isInteractive = fig.attrs["data-interactive"] !== undefined || isMotion(fig);
   if (!fig.cls.has("fig")) report("fig-class", `${name} <figure> has no class="fig"`);
   if (!FIG_KINDS.has(fig.attrs["data-kind"] ?? "")) report("fig-kind", `${name} data-kind="${fig.attrs["data-kind"] ?? ""}"`);
   const tags = elements(fig, (e) => e.cls.has("fig-tag"));
@@ -703,11 +715,13 @@ figures.forEach((fig, i) => {
   if (caps.length !== 1) report("fig-caption", `${name} has ${caps.length} <figcaption>`);
   if (fig.attrs.role !== undefined) report("fig-role", `${name} <figure role="${fig.attrs.role}">`);
   const bodies = figBodies(fig);
-  const problems = bodies.map((b) => [b, bodyProblem(b, isInteractive, fig.attrs["data-kind"])]).filter(([, p]) => p);
+  const problems = bodies.map((b) => [b, bodyProblem(b, isInteractive && !isMotion(fig), fig.attrs["data-kind"])]).filter(([, p]) => p);
   const valid = bodies.length - problems.length;
   for (const [b, p] of problems) report("fig-body", `${name} ${p} (${at(b)})`);
   if (!bodies.length) report("fig-body", `${name} has no body`);
   else if (!problems.length && valid > 1 && !isInteractive && fig.attrs["data-kind"] !== "panel") report("fig-body", `${name} has ${valid} bodies`, "keep one body per figure, or split it into two figures");
+  else if (isMotion(fig) && (bodies.length !== 1 || bodies[0].tag !== "svg")) report("fig-body", `${name} motion figure has ${bodies.length} bodies`, "draw the motion figure as one <svg role=\"img\" aria-label>, followed by its ol.motion-steps");
+  if (isMotion(fig)) checkMotion(fig, name);
   for (const b of bodies) {
     if (b.tag !== "svg") continue;
     const vb = (b.attrs.viewbox ?? "").trim().split(/[\s,]+/);
@@ -726,6 +740,38 @@ figures.forEach((fig, i) => {
     }
   }
 });
+
+// motion figures (R4): steps list, data-at ranges, token paths
+function checkMotion(fig, name) {
+  const lists = elements(fig, (e) => e.tag === "ol" && e.cls.has("motion-steps"));
+  const n = lists.length === 1 ? lists[0].children.filter((c) => c.type === "el" && c.tag === "li").length : 0;
+  if (lists.length !== 1 || n < 2 || n > 8) report("motion-steps", `${name} has ${lists.length} ol.motion-steps${lists.length === 1 ? ` with ${n} items` : ""}`);
+  if (n) {
+    for (const el of elements(fig, (e) => e.attrs["data-at"] !== undefined || nonEmpty(e.attrs["data-only"]))) {
+      for (const a of ["data-at", "data-only"]) {
+        const v = el.attrs[a];
+        if (v === undefined || (a === "data-only" && !v.trim())) continue;
+        const bad = v.split(",").some((r) => {
+          const m = /^\s*(\d+)\s*(?:-\s*(\d+))?\s*$/.exec(r);
+          return !m || +m[1] < 1 || +(m[2] ?? m[1]) > n || +m[1] > +(m[2] ?? m[1]);
+        });
+        if (bad) report("motion-at", `${name} ${a}="${v}" on ${label(el)} is not a step, range or list (1,4-5) in 1..${n} (${at(el)})`);
+      }
+    }
+  }
+  for (const tok of elements(fig, (e) => e.cls.has("tok"))) {
+    if (tok.attrs["data-at"] === undefined) report("motion-at", `${name} ${label(tok)} has no data-at (${at(tok)})`);
+    let svg = closest(tok, (e) => e.tag === "svg");
+    while (svg && closest(svg.parent, (e) => e.tag === "svg")) svg = closest(svg.parent, (e) => e.tag === "svg");
+    const ref = (tok.attrs["data-path"] ?? "").trim();
+    const target = ref.startsWith("#") && svg ? elements(svg, (e) => e.attrs.id === ref.slice(1))[0] : null;
+    if (!target) report("motion-path", `${name} ${label(tok)} data-path="${ref}" names no id in its svg (${at(tok)})`);
+    else if (!SVG_SHAPES.has(target.tag)) report("motion-path", `${name} data-path="${ref}" points at a <${target.tag}>, not a path or shape (${at(tok)})`);
+  }
+}
+if (figures.some(isMotion) && !all.some((e) => e.tag === "script" && (e.raw ?? "").includes(MOTION_SCRIPT))) {
+  report("motion-script", `the page has a motion figure (${at(figures.find(isMotion))}) but no <script> containing ${MOTION_SCRIPT}`);
+}
 
 // ascii width (R4): strip tags, decode entities, svg.ah counts as 1 column
 for (const pre of all.filter((e) => e.tag === "pre" && closest(e.parent, (a) => a.cls.has("ascii")))) {
@@ -792,7 +838,8 @@ for (const node of walk(body)) {
     if (!dashed.has(host)) dashed.set(host, t);
   }
 }
-if (words > 1600) report("word-count", `${words} prose words (over 1,600)`);
+if (!gallery && words < 1500) report("word-count", `${words} prose words (under 1,500)`);
+if (words > 4500) report("word-count", `${words} prose words (over 4,500)`);
 for (const [host, t] of dashed) {
   const k = t.indexOf("—");
   report("em-dash", `em dash in ${label(host)} "${snippet(t.slice(Math.max(0, k - 20), k + 20))}" (${at(host)})`);
@@ -815,5 +862,5 @@ findings.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]);
 for (const f of findings) console.log(`${f.sev} ${f.id}: ${f.what} -> ${f.how}`);
 const fails = findings.filter((f) => f.sev === "FAIL").length;
 const warns = findings.length - fails;
-console.log(`check-explain: ${fails} FAIL, ${warns} WARN in ${file}${gallery ? " (gallery)" : ""}`);
+console.log(`check-explain: ${fails} FAIL, ${warns} WARN in ${file}${gallery ? " (gallery)" : ""} · ${words} prose words, ${steps.length} steps, ${figures.length} figures`);
 process.exit(fails ? 1 : 0);

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>broken-motion-steps</title>
+<!-- Checker fixture (--gallery): motion-steps only. One motion figure lists 9 steps; data-at values stay inside 1..9. -->
+<style>
+:root {
+  --paper: #fafafa; --ink: #171717; --ink-2: #525252; --muted: #8f8f8f; --faint: #bdbdbd;
+  --rule: #ebebeb; --well: #efefef; --accent: #1f6feb; --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px; --fig-width: 880px;
+}
+body { margin: 0; color: var(--ink); background: var(--paper); font: 15px/1.6 var(--sans); }
+.fig { max-width: var(--measure); margin: 40px auto; border: 0; background: none; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig svg text { font: 12px var(--mono); fill: var(--ink-2); stroke: none; }
+.fig svg .ln { stroke: var(--ink-2); fill: none; }
+.fig svg .solid { fill: var(--ink-2); stroke: none; }
+.fig svg .subj { stroke: var(--accent); fill: none; }
+.fig svg .tok { fill: var(--accent); stroke: none; }
+.fig svg .tok:not(.on) { display: none; }
+.fig svg [data-flow] { stroke-dasharray: 4 4; }
+.fig.live svg .stepno, .fig.live svg [data-only]:not(.shown) { display: none; }
+</style>
+</head>
+<body>
+<main class="page">
+  <figure class="fig" data-kind="motion" data-interactive>
+    <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-name">[ relay ]</span><span class="fig-hint" data-hint>3 steps</span></div>
+    <svg role="img" aria-label="A message goes from A to B, then B to C, and C keeps it." width="420" height="80" viewBox="0 0 420 80">
+      <rect class="ln" x="4" y="20" width="76" height="40"/><rect class="ln" x="172" y="20" width="76" height="40"/><rect class="ln" x="340" y="20" width="76" height="40"/>
+      <text x="42" y="44" text-anchor="middle">A</text><text x="210" y="44" text-anchor="middle">B</text><text x="378" y="44" text-anchor="middle">C</text>
+      <path class="ln" id="hop1" data-at="1" d="M80 40 H166"/><path class="solid" data-at="1" d="M172 40 l-6 -3 v6 z"/>
+      <path class="ln" id="hop2" data-at="2" data-flow="2" d="M248 40 H334"/><path class="solid" data-at="2" d="M340 40 l-6 -3 v6 z"/>
+      <text class="stepno" x="88" y="34">1</text><text class="stepno" x="256" y="34">2</text>
+      <text data-at="3" data-only="2-3" x="378" y="74" text-anchor="middle">kept</text>
+      <circle class="tok" r="3.5" data-path="#hop1" data-at="1"/>
+      <circle class="tok" r="3.5" data-path="#hop2" data-at="2"/>
+    </svg>
+    <ol class="motion-steps">
+      <li>A sends the message to B.</li>
+      <li>B passes it on to C.</li>
+      <li>C keeps it.</li>
+      <li>C answers.</li>
+      <li>A reads it.</li>
+      <li>A logs it.</li>
+      <li>A closes.</li>
+      <li>Done.</li>
+      <li>Really done.</li>
+    </ol>
+    <figcaption>Nine steps.</figcaption>
+  </figure>
+</main>
+<script>
+/* jm-explain motion v1 */
+(() => {})();
+</script>
+</body>
+</html>

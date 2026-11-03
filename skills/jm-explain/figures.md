@@ -1,13 +1,13 @@
 # Figures
 
-Every figure on a page is one kind from this file, built from its snippet. All ten render together in `assets/figures.html`.
+Every figure on a page is one kind from this file, built from its snippet. All eleven render together in `assets/figures.html`.
 
 ## Contents
 
 - [Pick a kind](#pick-a-kind)
 - [Every figure](#every-figure): markup, hairlines, no scaling drift, mobile
 - [timeline](#timeline) · [ascii](#ascii) · [tree](#tree) · [stack](#stack) · [sequence](#sequence)
-- [chart](#chart) · [units](#units) · [table](#table) · [schematic](#schematic) · [panel](#panel)
+- [chart](#chart) · [units](#units) · [table](#table) · [schematic](#schematic) · [panel](#panel) · [motion](#motion)
 
 ## Pick a kind
 
@@ -22,7 +22,8 @@ Every figure on a page is one kind from this file, built from its snippet. All t
 | units | a share of a whole, or a count, as squares | more than 3 categories |
 | table | rows you would read in a terminal or a config, up to 8 rows and 6 columns | anything with a shape or a flow |
 | schematic | a physical part or circuit, flat section or side view | a real exploded drawing (hand off to `teardown`) |
-| panel | one parameter worth turning: code, part, curve and readouts together | more than one per page; a topic with no number to turn |
+| panel | one parameter worth turning: code, part, curve and readouts together | a second interactive figure (panel or motion) on the page; a topic with no number to turn |
+| motion | the movement or order is the mechanism (cycles, loops, parts driving each other, state building up across steps), 2 to 8 steps | something a static sequence or timeline already shows; a second interactive figure on the page |
 
 A figure shows what its paragraph says and nothing else: 3 to 8 elements, real identifiers, numbers with units.
 
@@ -39,7 +40,7 @@ Markup, in this order. `<figure>` takes no `role`.
 ```
 
 - `.fig-tag` reads exactly `FIG. n`, numbered 1..N in page order. The hint names conditions or units (`cold cache · time runs down`).
-- One body: `<svg role="img" aria-label>` (hand-drawn, or `svg.grid` from `scripts/ascii-figure.mjs` for ascii and tree), a div grid with `role="img" aria-label` (timeline, units, stack), or a `<table>` (table kind). The `aria-label` states what the figure shows in a sentence, numbers included.
+- One body: `<svg role="img" aria-label>` (hand-drawn, or `svg.grid` from `scripts/ascii-figure.mjs` for ascii and tree), a div grid with `role="img" aria-label` (timeline, units, stack), or a `<table>` (table kind). A motion figure adds its `ol.motion-steps` after the svg. The `aria-label` states what the figure shows in a sentence, numbers included.
 - Default width is `--measure` (620px). Add `wide` (880px) only for the panel or a timeline with many ticks.
 - No border, background, shadow, radius or card on the figure. It sits on the paper.
 - Accent only through `.subj`, `[data-subj]` or `.val`, and only on the one thing the paragraph is about. `.fault` (red) only for a real failure.
@@ -61,7 +62,7 @@ Every line is 1px, with two exceptions set in CSS: the subject curve or path (`.
 | `.ref-line` | `1 2` `--faint` | chart reference lines and event markers |
 | `.life` | `1 2` `--faint` | sequence lifelines |
 | `.ln-faint` | solid `--faint` | hatching, secondary outlines |
-| `.part` | solid `--ink`, 1.25px | object outlines in `schematic` and `panel` drawings only |
+| `.part` | solid `--ink`, 1.25px | object outlines in `schematic`, `panel` and `motion` drawings only |
 
 Add `subj` to any of them to draw it in the accent. In ASCII, use `┄ ┆` for dashed boxes.
 
@@ -118,17 +119,17 @@ The script prints one `<svg class="grid" role="img" aria-label="…">`; paste it
 
 - **Lines:** `─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼` (and rounded `╭ ╮ ╰ ╯`); dashed `┄ ┆` for estimates, not-reached parts and the money path.
 - **Arrowheads:** one character at the end of a line: `▸ ◂ ▴ ▾` (or `→ ← ↑ ↓`). The script draws the shaft into the tip, dashed when the line before it is dashed.
-- **Subject:** wrap it in `⟦ ⟧`; its text and lines turn accent. The markers take no columns.
+- **Subject:** wrap it in `⟦ ⟧`; its text and lines turn accent. Each marker takes one column, so line the source up with the markers in place: a marker renders as a space, or as the line it sits inside (`──⟦──▸⟧` stays one unbroken line). Put the markers in a label's padding, so `│  L2  │` becomes `│ ⟦L3⟧ │`.
 - **Size:** at most 56 columns, so labels stay at 10px or more on a 390px screen. The SVG is drawn at its real size and never scales up.
 - Labels above arrows, values inside boxes with 1 space to each edge, totals or latencies on the line under the boxes. Leave one space between an arrowhead and the box it points at.
 
 ```text
  load                              not reached
 ┌──────┐ miss ┌──────┐ miss ┌──────┐      ┌┄┄┄┄┄┄┐
-│ L1d  │─────▸│  L2  │─────▸│  ⟦L3⟧  │      ┆ DRAM ┆
+│ L1d  │────▸ │  L2  │────▸ │ ⟦L3⟧ │      ┆ DRAM ┆
 │ 48K  │      │  2M  │      │ 36M  │      ┆ 32G  ┆
 └──────┘      └──────┘      └──────┘      └┄┄┄┄┄┄┘
- 5 cyc         14 cyc       ⟦~50 cyc hit⟧    ~100 ns
+ 5 cyc         14 cyc      ⟦~50 cyc hit⟧   ~100 ns
 ```
 
 The rendered result is FIG. 2 in `assets/figures.html`.
@@ -147,7 +148,7 @@ https://api.example.com:8443/v1/users?id=7#top
 │  └─ port     8443
 ├─ path        /v1/users
 ├─ query       id=7
-└─ ⟦fragment    top⟧   never sent
+└─⟦fragment    top⟧  never sent
 ```
 
 The rendered result is FIG. 3 in `assets/figures.html`.
@@ -174,7 +175,7 @@ The rendered result is FIG. 3 in `assets/figures.html`.
 
 ## sequence
 
-- SVG, viewBox 420 wide. Up to 5 lanes, 90 apart (x 30 to 390). Lane names 11px caps at y 12, `text-anchor="middle"`.
+- SVG, viewBox 420 wide. Up to 5 lanes spread evenly from x 30 to 390: 360 apart for 2, 180 for 3, 120 for 4, 90 for 5. Lane names 11px caps at y 12, `text-anchor="middle"`.
 - Lifelines `.life` from y 22 to the end. Time runs down; messages 24 to 34 apart.
 - Message: a `.ln` line stopping 6 short of the target lane, a `.solid` head `M{x2} {y} l∓6 -3 v6 z`, the label 6 above the line, centred on the span between the two lanes it connects. Move a label sideways rather than let two collide.
 - The subject messages (usually the answer) take `subj` on line, head and label.
@@ -316,14 +317,14 @@ The rendered result is FIG. 3 in `assets/figures.html`.
 
 ## panel
 
-The spring reference drawn in the light palette. Use it once per page at most, for the one number the reader should turn.
+The spring reference drawn in the light palette. Use it once per page at most, and not beside a `motion` figure, for the one number the reader should turn.
 
 - `.fig.wide` with `data-interactive`. The head adds a `.fig-name` (`[ spring ]`) after the tag; the hint names the gestures, set by the script, and shows the static state without it.
 - `.panel` is a two-column grid: `.panel-code` (13px, faint line numbers, keys bold `--ink`, comment `.c` `--muted`, values `.val` in the accent) and a small schematic SVG on the right, at most 200 wide, outlines `.part` (1.25px `--ink`) and hatching `.ln-faint`. Under 480px the schematic drops under the code.
 - `.plot` spans both columns: a stretched SVG with no text, HTML tick labels (`.y` with `--y`, `.x` with `--x` and `--tx` for the ends), a `.mark` label at the event and a `.legend`. All chart conventions apply.
 - `.fig-foot` under a dotted rule: the formula on the first line; ranges left in `--muted`; readouts right, with `data-out` spans the script fills.
 - Static first: every number, path and readout in the HTML is computed for the values shown. The script only redraws.
-- Each tunable value is a `.val` with `data-param`, `data-label`, `data-min`, `data-max`, `data-step`. The script makes it a labelled `role="slider"`: drag sideways, or arrow keys (Shift for ×10). Copy the `<script>` from the end of `assets/figures.html` and change `sim()` and the readouts for your system.
+- Each tunable value is a `.val` with `data-param`, `data-label`, `data-min`, `data-max`, `data-step`. The script makes it a labelled `role="slider"`: drag sideways, or arrow keys (Shift for ×10). Copy the panel `<script>` (the first one at the end of `assets/figures.html`) and change `sim()` and the readouts for your system.
 - The chart SVG carries a `<title>` the script keeps current.
 
 ```html
@@ -368,4 +369,43 @@ The spring reference drawn in the light palette. Use it once per page at most, f
   </div>
   <figcaption>Stiffness 180 against damping 8 gives a damping ratio of 0.30: the mass overshoots by 37% and is within 2% of rest at 0.84s.<span class="fig-src">Source: computed, 1ms steps</span></figcaption>
 </figure>
+```
+
+## motion
+
+A drawing the reader steps through, for mechanisms where the movement or the order is the point: a cache filling as requests cross three machines, a scheduler issuing warps to lanes, a motor driving a roller and belt, a feedback loop. One interactive figure per page at most, so never beside a `panel`.
+
+- `.fig` with `data-interactive`, default width: the drawing is at most 420 wide, and `wide` would only push the controls away from it. The head adds a `.fig-name` after the tag; the hint (`data-hint`) names the static condition and the script replaces it with `arrow keys step`.
+- One `<svg role="img" aria-label>` drawn with the sequence and schematic rules: viewBox at most 420 wide, `.ln` boxes and hops, `.part` outlines for physical parts, 12px data labels, 11px caps names. Then `<ol class="motion-steps">` with 2 to 8 `<li>`, one short sentence per step.
+- Three primitives inside the svg:
+  - **`data-at="2"`, `data-at="2-4"` or `data-at="1,6"`**: the element turns accent during those steps and is drawn normally outside them. Put it on the hop, its arrowhead and its label; on a `<g>` it paints everything inside. Add `data-only` to hide the element outside its steps, or `data-only="3-5"` to show it over a different range (a cache entry that is written at 3 and stays).
+  - **`.tok`**: a small shape drawn around 0,0 (`<circle class="tok" r="3.5">`), with `data-path="#id"` and `data-at="n"`. During step n it travels the path with that id, eased over 0.9s, and waits at the end. It is hidden with JS off and outside its step. The path sits in the same svg with no transform between them; ids are unique on the page, so prefix them (`m-get`).
+  - **`data-flow`** on a path: its dashes move along the path direction while playing, or while its step is on when it also has `data-at`. A belt, a current, a stream. `data-flow="2"` moves twice as fast.
+- **Static first.** With JS off the reader gets the whole drawing, an 11px `.stepno` number beside each part that acts, and the full numbered step list. `.stepno` hides when the figure is live. With JS off every `data-only` element shows too, so none of them may overlap.
+- **The script.** Copy the `/* jm-explain motion v1 */` `<script>` from the end of `assets/figures.html` unchanged; it handles every motion figure on the page. It adds `.live`, builds `[ prev ] [ play ] [ next ] 1/5` as real buttons under the drawing, shows only the current step's sentence in an `aria-live` region, and steps with the arrow keys when the drawing or a button has focus. Prev and next wrap around.
+- **Reader-driven.** It starts paused on step 1 and never autoplays: nothing moves until the reader presses a control. Play replays the current step, then advances every 2.6s and loops until paused; a manual step pauses it.
+- **Reduced motion.** Under `prefers-reduced-motion: reduce` tokens jump to the end of their path, flows stand still, and play advances every 4s.
+- 3 to 8 parts, one token per hop in a step (a hop used in two steps gets one token with both steps), at most one flow. Write each step sentence so it reads alone, because live it is the only one on screen.
+
+```html
+<figure class="fig" data-kind="motion" data-interactive>
+  <div class="fig-head"><span class="fig-tag">FIG. 11</span><span class="fig-name">[ short link ]</span><span class="fig-hint" data-hint>cold cache · 5 steps</span></div>
+  <svg role="img" aria-label="A short link on a cold cache: the browser asks the edge for /x7k2; the edge cache has no entry, so the edge asks the database; …" width="420" height="190" viewBox="0 0 420 190">
+    <rect class="ln" x="4" y="20" width="76" height="88"/><text class="lbl" x="42" y="38" text-anchor="middle">BROWSER</text>
+    <rect class="ln" x="172" y="20" width="76" height="88"/><text class="lbl" x="210" y="38" text-anchor="middle">EDGE</text>
+    <text data-at="3" data-only="3-5" x="210" y="86" text-anchor="middle">x7k2</text>
+    <path class="ln" id="m-get" data-at="1" d="M80 54 H166"/><path class="solid" data-at="1" d="M172 54 l-6 -3 v6 z"/>
+    <text class="stepno" x="88" y="48">1</text><text data-at="1" x="100" y="48">GET /x7k2</text>
+    <path class="ln" data-flow data-at="5" d="M42 154 V114"/><path class="solid" data-at="5" d="M42 108 l-3 6 h6 z"/>
+    <circle class="tok" r="3.5" data-path="#m-get" data-at="1"/>
+    …
+  </svg>
+  <ol class="motion-steps">
+    <li>The browser sends <code>GET /x7k2</code> to the nearest edge server.</li>
+    <li>The edge cache has no entry for <code>x7k2</code>, so the edge asks the database.</li>
+    …
+  </ol>
+  <figcaption>Only the first click pays for the database. From step 3 on, the edge answers <code>x7k2</code> from its cache in one hop.<span class="fig-src">Source: illustrative</span></figcaption>
+</figure>
+<!-- once per page, after </main>: the /* jm-explain motion v1 */ <script> from assets/figures.html -->
 ```

@@ -192,8 +192,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig svg text.mut { fill: var(--muted); }
 .fig svg .ln { stroke: var(--ink-2); fill: none; }
 .fig svg .ln-faint { stroke: var(--faint); fill: none; }
-/* drawings (schematic, panel): object outlines a step bolder than the annotations */
-.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part { stroke: var(--ink); stroke-width: 1.25; fill: none; }
+/* drawings (schematic, panel, motion): object outlines a step bolder than the annotations */
+.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part, .fig[data-kind="motion"] svg .part { stroke: var(--ink); stroke-width: 1.25; fill: none; }
 .fig svg .leader { stroke: var(--muted); fill: none; }
 .fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
 .fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
@@ -206,6 +206,7 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
 .fig svg .solid.subj { fill: var(--accent); stroke: none; }
 .fig svg text.subj { fill: var(--accent); stroke: none; }
+.fig svg .part.subj { stroke: var(--accent); }
 
 /* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
 .ascii { container-type: inline-size; font-size: 14px; }
@@ -299,6 +300,42 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
 .fig-foot > :nth-child(2) { color: var(--muted); }
 
+/* motion: a drawing the reader steps through. Static: every part, .stepno numbers, the full step list.
+   The motion script adds .live: data-at parts turn accent in their steps, .tok travels its path, [data-flow] dashes move */
+.fig svg .tok { fill: var(--accent); stroke: none; }
+.fig svg .tok:not(.on) { display: none; }
+.fig svg [data-flow] { stroke-dasharray: 4 4; }
+.fig svg [data-flow].flowing { animation: motion-flow var(--flow-dur, .8s) linear infinite; }
+@keyframes motion-flow { to { stroke-dashoffset: -16; } }
+.fig svg text.stepno { font-size: 11px; fill: var(--muted); }
+.fig.live svg .stepno, .fig.live svg [data-only]:not(.shown) { display: none; }
+.fig.live > svg:focus-visible { outline: 1px solid var(--accent); outline-offset: 8px; }
+.motion-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 16px; }
+.motion-bar button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: pre;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.motion-bar button:hover { color: var(--ink); }
+.motion-bar button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.motion-count { margin-left: auto; font: 11px/1.4 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .06em; color: var(--muted); }
+ol.motion-steps { margin: 16px 0 0; padding: 0; list-style: none; counter-reset: mstep; font: 13px/1.5 var(--sans); color: var(--ink-2); }
+ol.motion-steps > li { position: relative; padding: 2px 0 2px 24px; counter-increment: mstep; }
+ol.motion-steps > li::before { content: counter(mstep); position: absolute; left: 0; top: 2px; font: 11px/19.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.fig.live ol.motion-steps { display: grid; margin-top: 8px; }
+.fig.live ol.motion-steps > li { grid-area: 1 / 1; padding: 0; visibility: hidden; color: var(--ink); }
+.fig.live ol.motion-steps > li::before { content: none; }
+.fig.live ol.motion-steps > li.on { visibility: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .fig svg [data-flow].flowing { animation: none; }
+}
+
 /* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
 @container (max-width: 480px) {
   .panel { grid-template-columns: 1fr; }
@@ -322,7 +359,7 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
   <header>
     <p class="prompt"><span class="caret">&gt;</span> <b>jm-explain</b> figure catalogue, one figure of each kind</p>
-    <p class="meta">10 kinds · snippets in figures.md</p>
+    <p class="meta">11 kinds · snippets in figures.md</p>
   </header>
 
   <section>
@@ -359,8 +396,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 <path class="ln" d="M357 25.2H361.2"/>
 <path class="ln" d="M411.6 25.2H415.8"/>
 <path class="ln dash" d="M361.2 25.2H411.6"/>
-<path class="ln" d="M67.2 42H113.4"/>
-<path class="ln" d="M184.8 42H231"/>
+<path class="ln" d="M67.2 42H105"/>
+<path class="ln" d="M184.8 42H222.6"/>
 <path class="ln" d="M4.2 75.6H63"/>
 <path class="ln" d="M121.8 75.6H180.6"/>
 <path class="ln" d="M239.4 75.6H298.2"/>
@@ -379,8 +416,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 <path class="ln" d="M415.8 25.2V33.6"/>
 <path class="ln" d="M415.8 67.2V75.6"/>
 <path class="ln dash" d="M415.8 33.6V67.2"/>
-<path class="hd" d="M117.2 42 L111.6 38.8 L111.6 45.2 Z"/>
-<path class="hd" d="M234.8 42 L229.2 38.8 L229.2 45.2 Z"/>
+<path class="hd" d="M108.8 42 L103.2 38.8 L103.2 45.2 Z"/>
+<path class="hd" d="M226.4 42 L220.8 38.8 L220.8 45.2 Z"/>
 <text class="tx" x="8.4" y="8.4" textLength="33.6">load</text>
 <text class="tx" x="294" y="8.4" textLength="92.4">not reached</text>
 <text class="tx" x="75.6" y="25.2" textLength="33.6">miss</text>
@@ -619,10 +656,60 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
     </figure>
   </section>
 
+  <section>
+    <header class="sec"><h2>Motion</h2><span class="idx">11</span></header>
+    <p>When the movement or the order is the mechanism, the reader steps through it. A short link opened for the first time, so the edge cache misses.</p>
+
+    <figure class="fig" data-kind="motion" data-interactive>
+      <div class="fig-head"><span class="fig-tag">FIG. 11</span><span class="fig-name">[ short link ]</span><span class="fig-hint" data-hint>cold cache · 5 steps</span></div>
+      <svg role="img" aria-label="A short link on a cold cache: the browser asks the edge for /x7k2; the edge cache has no entry, so the edge asks the database; the database returns the long URL and the edge caches it; the edge answers 301 with the long URL; the browser loads the page from example.com." width="420" height="190" viewBox="0 0 420 190">
+        <rect class="ln" x="4" y="20" width="76" height="88"/>
+        <rect class="ln" x="172" y="20" width="76" height="88"/>
+        <rect class="ln" x="340" y="20" width="76" height="88"/>
+        <text class="lbl" x="42" y="38" text-anchor="middle">BROWSER</text>
+        <text class="lbl" x="210" y="38" text-anchor="middle">EDGE</text>
+        <text class="lbl" x="378" y="38" text-anchor="middle">DATABASE</text>
+        <rect class="ln-faint" data-at="5" x="16" y="50" width="52" height="46"/>
+        <text class="lbl mut" x="42" y="66" text-anchor="middle">TAB</text>
+        <text x="42" y="86" text-anchor="middle">/x7k2</text>
+        <rect class="ln-faint" data-at="2" x="184" y="50" width="52" height="46"/>
+        <text class="lbl mut" x="210" y="66" text-anchor="middle">CACHE</text>
+        <text data-at="3" data-only="3-5" x="210" y="86" text-anchor="middle">x7k2</text>
+        <rect class="ln-faint" x="352" y="50" width="52" height="46"/>
+        <text class="lbl mut" x="378" y="66" text-anchor="middle">LINKS</text>
+        <text data-at="2-3" x="378" y="86" text-anchor="middle">x7k2</text>
+        <path class="ln" id="m-get" data-at="1" d="M80 54 H166"/><path class="solid" data-at="1" d="M172 54 l-6 -3 v6 z"/>
+        <text class="stepno" x="88" y="48">1</text><text data-at="1" x="100" y="48">GET /x7k2</text>
+        <path class="ln" id="m-ask" data-at="2" d="M248 54 H334"/><path class="solid" data-at="2" d="M340 54 l-6 -3 v6 z"/>
+        <text class="stepno" x="256" y="48">2</text><text data-at="2" x="268" y="48">x7k2?</text>
+        <path class="ln" id="m-url" data-at="3" d="M340 88 H254"/><path class="solid" data-at="3" d="M248 88 l6 -3 v6 z"/>
+        <text class="stepno" x="256" y="82">3</text><text data-at="3" x="268" y="82">long url</text>
+        <path class="ln" id="m-301" data-at="4" d="M172 88 H86"/><path class="solid" data-at="4" d="M80 88 l6 -3 v6 z"/>
+        <text class="stepno" x="88" y="82">4</text><text data-at="4" x="100" y="82">301 moved</text>
+        <rect class="ln" x="4" y="154" width="184" height="30"/>
+        <text x="96" y="173" text-anchor="middle">example.com/long/path</text>
+        <path class="ln" data-flow data-at="5" d="M42 154 V114"/><path class="solid" data-at="5" d="M42 108 l-3 6 h6 z"/>
+        <text class="stepno" x="50" y="138">5</text><text data-at="5" x="62" y="138">page</text>
+        <circle class="tok" r="3.5" data-path="#m-get" data-at="1"/>
+        <circle class="tok" r="3.5" data-path="#m-ask" data-at="2"/>
+        <circle class="tok" r="3.5" data-path="#m-url" data-at="3"/>
+        <circle class="tok" r="3.5" data-path="#m-301" data-at="4"/>
+      </svg>
+      <ol class="motion-steps">
+        <li>The browser sends <code>GET /x7k2</code> to the nearest edge server.</li>
+        <li>The edge cache has no entry for <code>x7k2</code>, so the edge asks the database.</li>
+        <li>The database returns the long URL, and the edge keeps a copy in its cache.</li>
+        <li>The edge answers <code>301</code> with the long URL in its <code>Location</code> header.</li>
+        <li>The browser follows <code>Location</code> and loads the page from the origin.</li>
+      </ol>
+      <figcaption>Only the first click pays for the database. From step 3 on, the edge answers <code>x7k2</code> from its cache in one hop.<span class="fig-src">Source: illustrative, a typical edge-cached link shortener</span></figcaption>
+    </figure>
+  </section>
+
 </main>
 <script>
 (() => {
-  const fig = document.querySelector('.fig[data-interactive]');
+  const fig = document.querySelector('.fig[data-kind="panel"]');
   if (!fig) return;
   const q = (s) => fig.querySelector(s);
   const p = {};
@@ -681,6 +768,98 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
     });
   });
   q('[data-hint]').textContent = 'drag a number · arrow keys';
+})();
+</script>
+<script>
+/* jm-explain motion v1 */
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - (2 - 2 * k) ** 3 / 2);
+  document.querySelectorAll('.fig[data-kind="motion"]').forEach((fig) => {
+    const svg = fig.querySelector('svg');
+    const list = fig.querySelector('ol.motion-steps');
+    const items = list ? [...list.children] : [];
+    const n = items.length;
+    if (!svg || n < 2) return;
+    const fixed = new Set(svg.querySelectorAll('.subj'));
+    const span = (v) => { const rs = (v || '0').split(',').map((r) => { const [a, b = a] = r.split('-').map(Number); return [a, b]; }); return (k) => rs.some(([a, b]) => k >= a && k <= b); };
+    const parts = [...svg.querySelectorAll('[data-at], [data-only]')].map((el) => {
+      const tok = el.classList.contains('tok');
+      const at = span(el.dataset.at);
+      const only = el.dataset.only ? span(el.dataset.only) : at;
+      return { el, at, only, tok, path: tok && svg.querySelector(el.dataset.path), paint: el.tagName === 'g' ? [el, ...el.querySelectorAll('*')] : [el] };
+    });
+    const flows = [...svg.querySelectorAll('[data-flow]')];
+    flows.forEach((el) => el.style.setProperty('--flow-dur', 0.8 / (parseFloat(el.dataset.flow) || 1) + 's'));
+    let cur = 1, timer = 0, started = false;
+
+    const travel = (p, animate) => {
+      cancelAnimationFrame(p.raf);
+      if (!p.path) return;
+      const len = p.path.getTotalLength();
+      const put = (k) => { const pt = p.path.getPointAtLength(len * k); p.el.setAttribute('transform', `translate(${pt.x} ${pt.y})`); };
+      if (!animate || reduce.matches) return put(1);
+      const t0 = performance.now();
+      const tick = (now) => { const k = Math.min(1, (now - t0) / 900); put(ease(k)); if (k < 1) p.raf = requestAnimationFrame(tick); };
+      put(0);
+      p.raf = requestAnimationFrame(tick);
+    };
+    const setFlows = () => flows.forEach((el) => el.classList.toggle('flowing', started && (el.dataset.at ? el.classList.contains('on') : !!timer)));
+    const go = (k, animate) => {
+      cur = ((k - 1 + n) % n) + 1;
+      for (const p of parts) {
+        const on = p.at(cur);
+        p.el.classList.toggle('on', on);
+        p.el.classList.toggle('shown', p.only(cur));
+        if (p.tok) { if (on) travel(p, animate); else cancelAnimationFrame(p.raf); }
+        else p.paint.forEach((e) => fixed.has(e) || e.classList.toggle('subj', on));
+      }
+      items.forEach((li, i) => li.classList.toggle('on', i + 1 === cur));
+      count.textContent = `${cur}/${n}`;
+      setFlows();
+    };
+
+    const button = (text, label, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.setAttribute('aria-label', label);
+      b.addEventListener('click', fn);
+      return b;
+    };
+    const pause = () => {
+      clearInterval(timer);
+      timer = 0;
+      play.textContent = '[ play ]';
+      play.setAttribute('aria-label', 'Play the steps');
+      setFlows();
+    };
+    const step = (d) => { started = true; pause(); go(cur + d, true); };
+    const play = button('[ play ]', 'Play the steps', () => {
+      if (timer) return pause();
+      started = true;
+      timer = setInterval(() => go(cur + 1, true), reduce.matches ? 4000 : 2600);
+      play.textContent = '[ pause ]';
+      play.setAttribute('aria-label', 'Pause');
+      go(cur, true);
+    });
+    const count = document.createElement('span');
+    count.className = 'motion-count';
+    const bar = document.createElement('div');
+    bar.className = 'motion-bar';
+    bar.append(button('[ prev ]', 'Previous step', () => step(-1)), play, button('[ next ]', 'Next step', () => step(1)), count);
+    list.before(bar);
+    svg.setAttribute('tabindex', '0');
+    fig.addEventListener('keydown', (e) => {
+      const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (d) { e.preventDefault(); step(d); }
+    });
+    const hint = fig.querySelector('[data-hint]');
+    if (hint) hint.textContent = 'arrow keys step';
+    fig.classList.add('live');
+    go(1, false);
+    list.setAttribute('aria-live', 'polite');
+  });
 })();
 </script>
 </body>
