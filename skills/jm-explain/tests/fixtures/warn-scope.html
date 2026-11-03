@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>warn-scope</title>
-<!-- Checker fixture: no FAIL, only scope WARNs. 8 steps, 11 figures, over 2,500 prose words, one em dash in prose (the one in <code> and the one in the ascii pre are ignored). -->
+<!-- Checker fixture: no FAIL, only scope WARNs. 8 steps, 11 figures, over 2,500 prose words, one em dash in prose (the one in <code> is ignored), two accent hooks in the finish prose. -->
 <style>
 :root {
   --paper: #fafafa; --ink: #171717; --ink-2: #525252; --muted: #8f8f8f; --faint: #bdbdbd;
@@ -166,6 +166,7 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
   </section>
   <section data-part="finish">
     <header class="sec"><h2>What transfers</h2><span class="idx">05</span></header>
+    <p>The <span class="subj">resolver</span> caches for <span class="val">3600s</span>.</p>
     <p>A lookup is a chain of referrals — it ends in one record, and caching makes the chain rare.</p>
   <figure class="fig" data-kind="schematic">
     <div class="fig-head"><span class="fig-tag">FIG. 10</span></div>
