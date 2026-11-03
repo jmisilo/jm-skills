@@ -111,7 +111,7 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 - `<pre>` inside `.ascii`, line-height 1.2, `--ink-2`, no padding, `user-select: none`. Box drawing only: `┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴`, dashed `┄ ┆`.
 - **Size**: set `--cols` to the widest line, in characters. The CSS does `font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)))` on a 14px base, so the widest line always fits and type never exceeds 14px.
 - **At most 56 columns**: at 350px that still gives 10px type.
-- **Arrowheads** are a 1ch inline SVG after a run of `─`, counted as 1 column. Right: `<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>`. Left: `d="M6 1.5 L0 5 L6 8.5 Z"`. Down, under a `│`: `d="M0.5 3 L5.5 3 L3 8 Z"`.
+- **Arrowheads** are a 1ch inline SVG after a run of `─`, counted as 1 column. It fills exactly one line box (`height:1.2em; vertical-align:top`), so the row height never changes and the tip sits on the line's centre, where `─` is drawn; it carries its own short shaft, so the run never shows a gap. Right: `<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>`. Left: `d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z"`. Down, under a `│`: `d="M2.6 0H3.4V7H2.6Z M0.6 6H5.4L3 10.5Z"`. Never use `vertical-align` offsets or a 1em height: the tip drops below the line and taller rows break vertical `│` runs.
 - Labels above arrows, values inside boxes, totals or latencies on the line under the boxes. Mark the subject with `<span class="subj">`.
 
 ```html
@@ -119,7 +119,7 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
   <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">one load · typical latencies</span></div>
   <div class="ascii" role="img" aria-label="A load misses L1d (5 cycles) and L2 (14 cycles), hits L3 (about 50 cycles) and never reaches DRAM (about 100ns)." style="--cols:50"><pre aria-hidden="true"> load                              not reached
 ┌──────┐ miss ┌──────┐ miss ┌──────┐      ┌┄┄┄┄┄┄┐
-│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
+│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
 │ 48K  │      │  2M  │      │ 36M  │      ┆ 32G  ┆
 └──────┘      └──────┘      └──────┘      └┄┄┄┄┄┄┘
  5 cyc         14 cyc       <span class="subj">~50 cyc hit</span>    ~100 ns</pre></div>
