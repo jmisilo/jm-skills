@@ -8,6 +8,7 @@ Agent skills for Claude Code, Codex and other agents that read the Agent Skills 
 | [jm-complex-workflow](skills/jm-complex-workflow/SKILL.md) | `/jm-complex-workflow <task>` only | Big or ambiguous changes: understand, plan, specialist review rounds, implement, close the loop |
 | [jm-compose-loop](skills/jm-compose-loop/SKILL.md) | agent or `/jm-compose-loop` | Choosing the checks that prove work is done, as a Loop table for a plan |
 | [jm-coding-styleguide](skills/jm-coding-styleguide/SKILL.md) | agent or `/jm-coding-styleguide` | TypeScript, React and Next.js conventions: control flow, `withX` wrappers, service classes, monorepo layout |
+| [jm-explain](skills/jm-explain/SKILL.md) | `/jm-explain <topic>` or `$jm-explain <topic>` only | How something is built (software, system, hardware, process) as one mono-paper HTML page with figures; `--md` answers in chat |
 
 `jm-complex-workflow` loads `jm-compose-loop` while planning, so install both.
 

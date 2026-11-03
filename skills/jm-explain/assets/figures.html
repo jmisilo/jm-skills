@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jm-explain figure catalogue</title>
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #171717;
+  --ink-2: #525252;
+  --muted: #8f8f8f;
+  --faint: #bdbdbd;
+  --rule: #ebebeb;
+  --well: #efefef;
+  --accent: #1a6be6;
+  --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px;
+  --fig-width: 880px;
+}
+
+/* == base == */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--paper); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font: 15px/1.6 var(--sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: var(--accent-soft); }
+p { margin: 0 0 16px; text-wrap: pretty; }
+a { color: var(--ink); text-decoration: underline 1px var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink-2); }
+b, strong { font-weight: 600; }
+
+/* == page: prose in --measure, figures break out to --fig-width == */
+.page { max-width: calc(var(--fig-width) + 40px); margin: 0 auto; padding: 72px 20px 120px; }
+.page > * > :not(.fig) { max-width: var(--measure); margin-inline: auto; }
+.page > section { margin-top: 64px; }
+.page > [data-part="problem"] { margin-top: 40px; }
+
+/* == prompt header == */
+.prompt {
+  margin-bottom: 0;
+  padding-left: 2ch;
+  text-indent: -2ch;
+  font: 13px/1.6 var(--mono);
+  color: var(--ink-2);
+}
+.prompt .caret { color: var(--muted); }
+.prompt b { color: var(--ink); }
+.meta {
+  margin-top: 4px;
+  padding: 0 0 16px 15.6px; /* 2ch of the 13px prompt */
+  border-bottom: 1px solid var(--rule);
+  font: 11px/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+/* == headings == */
+h1 { margin: 0 0 16px; font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
+.sec { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.sec::after { content: ""; order: 1; flex: 1; border-top: 1px solid var(--rule); }
+.sec .idx { order: 2; }
+.idx, .label {
+  font: 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* == inline == */
+code {
+  padding: .05em .35em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: .9em;
+}
+dfn { font-style: normal; font-weight: 600; }
+mark { background: none; color: inherit; }
+.subj, [data-subj], .val { color: var(--accent); }
+.val { font-variant-numeric: tabular-nums; }
+.inferred { text-decoration: underline dotted 1px var(--muted); text-underline-offset: 4px; }
+.fault { color: var(--fault); }
+sup.ref { font: 10px/0 var(--mono); vertical-align: super; margin-left: 1px; }
+sup.ref a { padding: 0 1px; color: var(--ink-2); text-decoration: none; }
+sup.ref a:hover { color: var(--ink); }
+.lead { font-weight: 600; }
+
+/* == primer: term | definition rows == */
+dl.terms {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  margin-block: 0;
+  border-bottom: 1px solid var(--rule);
+}
+dl.terms dt, dl.terms dd { padding: 12px 0; border-top: 1px solid var(--rule); }
+dl.terms dt {
+  padding-right: 24px;
+  font: 11px/24px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+}
+dl.terms dd { margin: 0; color: var(--ink); }
+
+/* == numbered steps: faint numerals, bold lead-in, grey rest == */
+ol.steps { margin: 0 0 24px; padding: 0; list-style: none; counter-reset: step; border-bottom: 1px solid var(--rule); }
+ol.steps > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  counter-increment: step;
+}
+ol.steps > li::before {
+  content: counter(step, decimal-leading-zero);
+  font: 12px/24px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+ol.steps > li > b:first-child { color: var(--ink); }
+
+/* == sources == */
+ol.sources { margin: 0; padding: 0; list-style: none; counter-reset: src; font-size: 14px; }
+ol.sources > li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  padding: 8px 0;
+  color: var(--ink-2);
+  counter-increment: src;
+}
+ol.sources > li::before {
+  content: counter(src, decimal-leading-zero);
+  font: 12px/22px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+ol.sources .label { display: block; margin-top: 4px; }
+ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink); }
+.key { margin-top: 24px; }
+
+@media (max-width: 480px) {
+  .page { padding-top: 40px; }
+  dl.terms { grid-template-columns: 1fr; }
+  dl.terms dt { padding-bottom: 4px; }
+  dl.terms dd { padding-top: 0; border-top: 0; }
+  ol.steps > li, ol.sources > li { grid-template-columns: 28px 1fr; }
+}
+
+/* == figures == */
+/* Figures sit on the paper: no card, border, fill or shadow. Default width is --measure; .wide breaks out to --fig-width. */
+.fig { max-width: var(--measure); margin: 40px auto; padding: 0; border: 0; background: none; container-type: inline-size; }
+.fig.wide { max-width: var(--fig-width); }
+.fig-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.fig-tag, .fig-hint, .fig-src, .fig-name {
+  font: 11px/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.fig-name { margin-right: auto; color: var(--ink-2); }
+.fig-hint { text-align: right; }
+.fig figcaption {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--faint);
+  font: 13px/1.5 var(--sans);
+  color: var(--ink-2);
+}
+.fig-src { display: block; margin-top: 4px; }
+
+/* svg: drawn at real size (width = viewBox width), never scaled up, centred; 1px strokes at any scale */
+.fig svg { overflow: visible; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig > svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
+.fig svg text { font: 12px var(--mono); font-variant-numeric: tabular-nums; fill: var(--ink-2); stroke: none; }
+.fig svg text.lbl { font-size: 11px; letter-spacing: .06em; }
+.fig svg text.mut { fill: var(--muted); }
+.fig svg .ln { stroke: var(--ink-2); fill: none; }
+.fig svg .ln-faint { stroke: var(--faint); fill: none; }
+.fig svg .leader { stroke: var(--muted); fill: none; }
+.fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
+.fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .dash { stroke: var(--muted); stroke-dasharray: 2 4; fill: none; }
+.fig svg .solid { fill: var(--ink-2); stroke: none; }
+.fig svg .ref-line { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
+.fig svg .series { stroke: var(--ink-2); fill: none; }
+.fig svg .after { stroke: var(--muted); fill: none; }
+.fig svg .subj { stroke: var(--accent); fill: none; }
+.fig svg path.subj, .fig svg polyline.subj { stroke-width: 1.5; }
+.fig svg .solid.subj { fill: var(--accent); stroke: none; }
+.fig svg text.subj { fill: var(--accent); stroke: none; }
+
+/* ascii: the widest line always fits; --cols = widest line in characters, at most 56 */
+.ascii { container-type: inline-size; font-size: 14px; }
+.ascii pre {
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)));
+  line-height: 1.2;
+  color: var(--ink-2);
+  user-select: none;
+}
+
+/* timeline: label column + track, positions as % */
+.tl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 14px;
+  align-items: center;
+  font: 12px/1.2 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.tl-axis, .tl-bracket, .tl-track { position: relative; }
+.tl-axis { height: 14px; }
+.tl-axis span { position: absolute; left: var(--at); transform: translateX(-50%); white-space: nowrap; }
+.tl-axis span:first-child { transform: none; }
+.tl-axis span:last-child { transform: translateX(-100%); }
+.tl-bracket { height: 8px; }
+.tl-seg { position: absolute; left: var(--a); width: calc(var(--b) - var(--a)); bottom: 0; height: 8px; border-bottom: 1px solid var(--faint); }
+.tl-tick { position: absolute; left: var(--at); bottom: 0; width: 1px; height: 8px; background: var(--faint); }
+.tl-tick:last-child { margin-left: -1px; }
+.tl-track { height: 8px; background: var(--well); }
+.tl-bar { position: absolute; top: 0; bottom: 0; left: var(--a); width: calc(var(--b) - var(--a)); background: var(--ink-2); }
+.tl-track[data-subj] .tl-bar { background: var(--accent); }
+
+/* stack: one hairline block per layer, top of the stack first */
+.stack { display: grid; gap: 4px; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.stack > div { display: grid; grid-template-columns: 9ch 1fr auto; gap: 16px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--faint); }
+.stack > div > :first-child { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.stack > div > :last-child { text-align: right; }
+.stack > [data-subj] { border-color: var(--accent); }
+
+/* units: one square per unit, key underneath */
+.units { display: grid; gap: 12px; justify-items: center; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.units-grid { display: grid; grid-template-columns: repeat(var(--per-row, 20), 12px); gap: 4px; }
+.units-grid i, .units-key i { display: block; width: 12px; height: 12px; background: var(--well); }
+.units-grid .on, .units-key .on { background: var(--ink-2); }
+.units-grid .subj, .units-key .subj { background: var(--accent); }
+.units-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.units-key span { display: inline-flex; align-items: center; gap: 8px; }
+.units-key i { width: 8px; height: 8px; }
+
+/* table: semantic table, hairline rows, --well header row */
+.fig table { width: 100%; border-collapse: collapse; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.fig th, .fig td { padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.fig th { font-size: 11px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; background: var(--well); }
+.fig th:first-child, .fig td:first-child { padding-left: 8px; }
+.fig .num { text-align: right; }
+
+/* panel: tag line, code with live values, small schematic, chart, footer with formula and readouts */
+.panel { display: grid; grid-template-columns: 1fr auto; gap: 24px 32px; align-items: start; }
+.panel-code { font: 13px/1.85 var(--mono); color: var(--ink-2); counter-reset: ln; }
+.panel-code > div { white-space: pre; counter-increment: ln; }
+.panel-code > div::before { content: counter(ln); display: inline-block; width: 3ch; color: var(--faint); }
+.panel-code b { font-weight: 600; color: var(--ink); }
+.panel-code .c { color: var(--muted); }
+.panel-code [data-param] { cursor: ew-resize; touch-action: none; border-radius: 2px; }
+.panel-code [data-param]:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.plot { grid-column: 1 / -1; position: relative; height: 180px; margin: 8px 0 24px 3ch; font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.plot > span { position: absolute; white-space: nowrap; }
+.plot .y { right: calc(100% + 1ch); top: var(--y); transform: translateY(-50%); }
+.plot .x { top: calc(100% + 10px); left: var(--x); transform: translateX(var(--tx, -50%)); }
+.plot .mark { left: var(--x); top: -4px; margin-left: 6px; }
+.plot .legend { right: 0; bottom: 8px; color: var(--muted); }
+.fig-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--faint);
+  font: 12px/1.8 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.fig-foot > :first-child { flex-basis: 100%; color: var(--ink); }
+.fig-foot > :nth-child(2) { color: var(--muted); }
+
+/* mobile: stack the panel; other kinds fit by viewBox <= 430, cqw type or HTML labels */
+@container (max-width: 480px) {
+  .panel { grid-template-columns: 1fr; }
+  .panel > svg { justify-self: center; }
+  .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
+  .fig th, .fig td { padding-inline: 6px; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header>
+    <p class="prompt"><span class="caret">&gt;</span> <b>jm-explain</b> figure catalogue, one figure of each kind</p>
+    <p class="meta">10 kinds · snippets in figures.md</p>
+  </header>
+
+  <section>
+    <header class="sec"><h2>Timeline</h2><span class="idx">01</span></header>
+    <p>When it happens and for how long. One HTTP request, from the first DNS packet to the last body byte.</p>
+
+    <figure class="fig" data-kind="timeline">
+      <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">one request · cold connection</span></div>
+      <div class="tl" role="img" aria-label="Timeline of one HTTPS request: DNS 0 to 24ms, TCP connect 24 to 52ms, TLS 52 to 98ms, waiting for the first byte 98 to 212ms, download 212 to 240ms.">
+        <span></span>
+        <div class="tl-axis"><span style="--at:0%">0</span><span style="--at:25%">60</span><span style="--at:50%">120</span><span style="--at:75%">180</span><span style="--at:100%">240ms</span></div>
+        <span></span>
+        <div class="tl-bracket"><span class="tl-seg" style="--a:0%;--b:100%"></span><span class="tl-tick" style="--at:0%"></span><span class="tl-tick" style="--at:25%"></span><span class="tl-tick" style="--at:50%"></span><span class="tl-tick" style="--at:75%"></span><span class="tl-tick" style="--at:100%"></span></div>
+        <span>dns</span><div class="tl-track"><span class="tl-bar" style="--a:0%;--b:10%"></span></div>
+        <span>tcp connect</span><div class="tl-track"><span class="tl-bar" style="--a:10%;--b:21.7%"></span></div>
+        <span>tls</span><div class="tl-track"><span class="tl-bar" style="--a:21.7%;--b:40.8%"></span></div>
+        <span class="subj">wait (ttfb)</span><div class="tl-track" data-subj><span class="tl-bar" style="--a:40.8%;--b:88.3%"></span></div>
+        <span>download</span><div class="tl-track"><span class="tl-bar" style="--a:88.3%;--b:100%"></span></div>
+      </div>
+      <figcaption>Almost half the request is the server thinking. Connection setup costs three round trips before a single byte of the page is asked for.<span class="fig-src">Source: illustrative, a typical cold HTTPS request</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>ASCII box and arrow</h2><span class="idx">02</span></header>
+    <p>A few named parts and what flows between them. A load misses two caches and hits the third.</p>
+
+    <figure class="fig" data-kind="ascii">
+      <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">one load · typical latencies</span></div>
+      <div class="ascii" role="img" aria-label="A load misses L1d (5 cycles) and L2 (14 cycles), hits L3 (about 50 cycles) and never reaches DRAM (about 100ns)." style="--cols:50"><pre aria-hidden="true"> load                              not reached
+┌──────┐ miss ┌──────┐ miss ┌──────┐      ┌┄┄┄┄┄┄┐
+│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
+│ 48K  │      │  2M  │      │ 36M  │      ┆ 32G  ┆
+└──────┘      └──────┘      └──────┘      └┄┄┄┄┄┄┘
+ 5 cyc         14 cyc       <span class="subj">~50 cyc hit</span>    ~100 ns</pre></div>
+      <figcaption>The load stops at the first level that has the line. Each level down is larger and several times slower.<span class="fig-src">Source: illustrative, typical recent x86 core</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Tree</h2><span class="idx">03</span></header>
+    <p>What contains what. A URL, split into the parts a browser reads.</p>
+
+    <figure class="fig" data-kind="tree">
+      <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">url parts</span></div>
+      <div class="ascii" role="img" aria-label="The URL https://api.example.com:8443/v1/users?id=7#top splits into scheme, authority (host and port), path, query and fragment. The fragment is never sent to the server." style="--cols:46"><pre aria-hidden="true">https://api.example.com:8443/v1/users?id=7#top
+├─ scheme      https
+├─ authority
+│  ├─ host     api.example.com
+│  └─ port     8443
+├─ path        /v1/users
+├─ query       id=7
+└─ <span class="subj">fragment    top</span>   never sent</pre></div>
+      <figcaption>Everything up to the query goes to the server. The fragment stays in the browser.<span class="fig-src">Source: RFC 3986, section 3</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Stack</h2><span class="idx">04</span></header>
+    <p>Layers, each built on the one below. What each layer of the network stack adds to one HTTPS request.</p>
+
+    <figure class="fig" data-kind="stack">
+      <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">sending runs top to bottom</span></div>
+      <div class="stack" role="img" aria-label="Network stack for one HTTPS request: HTTP carries the request, TLS adds a 5 byte header and 16 byte tag, TCP adds 20 bytes, IPv4 adds 20 bytes, Ethernet adds 14 bytes plus a 4 byte checksum.">
+        <div><span>http/1.1</span><span>GET /index.html</span><span>payload</span></div>
+        <div data-subj><span>tls 1.3</span><span>record header, auth tag</span><span>5 + 16 B</span></div>
+        <div><span>tcp</span><span>ports, sequence numbers</span><span>20 B</span></div>
+        <div><span>ipv4</span><span>source, destination</span><span>20 B</span></div>
+        <div><span>ethernet</span><span>MAC addresses, FCS</span><span>14 + 4 B</span></div>
+      </div>
+      <figcaption>Each layer wraps the one above in its own header. TLS is the only layer that also hides what it wraps.<span class="fig-src">Source: RFC 8446, RFC 9293, RFC 791, IEEE 802.3</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Sequence</h2><span class="idx">05</span></header>
+    <p>Who talks to whom, in order. A resolver with an empty cache looks up <code>example.com</code>.</p>
+
+    <figure class="fig" data-kind="sequence">
+      <div class="fig-head"><span class="fig-tag">FIG. 5</span><span class="fig-hint">cold cache · time runs down</span></div>
+      <svg role="img" aria-label="DNS lookup: the laptop asks its resolver for example.com; the resolver asks the root, which refers it to .com; asks the .com TLD, which refers it to ns1; asks the authoritative server, which answers 93.184.215.14; the resolver passes the answer back to the laptop." width="420" height="270" viewBox="0 0 420 270">
+        <text class="lbl" x="30" y="12" text-anchor="middle">LAPTOP</text><text class="lbl" x="120" y="12" text-anchor="middle">RESOLVER</text><text class="lbl" x="210" y="12" text-anchor="middle">ROOT</text><text class="lbl" x="300" y="12" text-anchor="middle">TLD</text><text class="lbl" x="390" y="12" text-anchor="middle">AUTH</text>
+        <path class="life" d="M30 22 V266 M120 22 V266 M210 22 V266 M300 22 V266 M390 22 V266"/>
+        <line class="ln" x1="30" y1="50" x2="114" y2="50"/><path class="solid" d="M120 50 l-6 -3 v6 z"/><text x="75" y="44" text-anchor="middle">example.com?</text>
+        <line class="ln" x1="120" y1="84" x2="204" y2="84"/><path class="solid" d="M210 84 l-6 -3 v6 z"/><text x="165" y="78" text-anchor="middle">example.com?</text>
+        <line class="ln" x1="210" y1="108" x2="126" y2="108"/><path class="solid" d="M120 108 l6 -3 v6 z"/><text x="165" y="102" text-anchor="middle">try .com</text>
+        <line class="ln" x1="120" y1="142" x2="294" y2="142"/><path class="solid" d="M300 142 l-6 -3 v6 z"/><text x="165" y="136" text-anchor="middle">example.com?</text>
+        <line class="ln" x1="300" y1="166" x2="126" y2="166"/><path class="solid" d="M120 166 l6 -3 v6 z"/><text x="255" y="160" text-anchor="middle">try ns1</text>
+        <line class="ln" x1="120" y1="200" x2="384" y2="200"/><path class="solid" d="M390 200 l-6 -3 v6 z"/><text x="165" y="194" text-anchor="middle">example.com?</text>
+        <line class="ln subj" x1="390" y1="224" x2="126" y2="224"/><path class="solid subj" d="M120 224 l6 -3 v6 z"/><text class="subj" x="345" y="218" text-anchor="middle">93.184.215.14</text>
+        <line class="ln subj" x1="120" y1="258" x2="36" y2="258"/><path class="solid subj" d="M30 258 l6 -3 v6 z"/><text class="subj" x="75" y="252" text-anchor="middle">93.184.215.14</text>
+      </svg>
+      <figcaption>The resolver does the walking. Root and TLD only refer it onward; the authoritative server is the one that answers.<span class="fig-src">Source: RFC 1034, section 5.3.3</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Chart</h2><span class="idx">06</span></header>
+    <p>How a value changes over time or against another value. TCP Reno's congestion window through slow start and one loss.</p>
+
+    <figure class="fig" data-kind="chart">
+      <div class="fig-head"><span class="fig-tag">FIG. 6</span><span class="fig-hint">tcp reno · textbook values</span></div>
+      <svg role="img" aria-label="Chart of the TCP congestion window over 16 round trips: it doubles each round trip from 1 to 32 segments, then grows by one per round trip to 38; a loss at round trip 11 halves it to 19, after which it grows by one again." width="420" height="200" viewBox="0 0 420 200">
+        <line class="ref-line" x1="48" y1="170" x2="400" y2="170"/>
+        <line class="ref-line" x1="48" y1="58" x2="400" y2="58"/>
+        <line class="ref-line" x1="290" y1="22" x2="290" y2="170"/>
+        <path class="subj" d="M48 166.5 L70 163 L92 156 L114 142 L136 114 L158 58 L180 54.5 L202 51 L224 47.5 L246 44 L268 40.5 L290 37"/>
+        <path class="after" d="M290 37 L290 103.5 L312 100 L334 96.5 L356 93 L378 89.5 L400 86"/>
+        <text x="40" y="174" text-anchor="end">0</text>
+        <text x="40" y="62" text-anchor="end">32</text>
+        <text x="48" y="190">0</text>
+        <text x="136" y="190" text-anchor="middle">4</text>
+        <text x="224" y="190" text-anchor="middle">8</text>
+        <text x="312" y="190" text-anchor="middle">12</text>
+        <text x="400" y="190" text-anchor="end">16 RTT</text>
+        <text x="296" y="18">loss, halve</text>
+        <text class="mut" x="400" y="72" text-anchor="end">ssthresh</text>
+        <text class="subj" x="166" y="30">cwnd, segments</text>
+      </svg>
+      <figcaption>Doubling gets the window to the threshold in five round trips; after that it creeps up one segment at a time until a loss cuts it in half.<span class="fig-src">Source: RFC 5681, sections 3.1 and 3.2</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Units</h2><span class="idx">07</span></header>
+    <p>A share of a whole, counted in squares. Where the flash on a 1 TB SSD goes.</p>
+
+    <figure class="fig" data-kind="units">
+      <div class="fig-head"><span class="fig-tag">FIG. 7</span><span class="fig-hint">1 square = 1% of the flash</span></div>
+      <div class="units" role="img" aria-label="Unit grid of a 1 TB SSD's 1024 GiB of flash: 52 percent holds data, 39 percent is free user space, 9 percent is spare area the drive keeps for itself.">
+        <div class="units-grid" style="--per-row:20">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i><i class="subj"></i>
+        </div>
+        <div class="units-key"><span><i class="on"></i>data 52%</span><span><i></i>free 39%</span><span><i class="subj"></i>spare 9%</span></div>
+      </div>
+      <figcaption>1 TB is sold to you, 1,024 GiB is built in. The 9% gap is spare area for wear levelling and garbage collection.<span class="fig-src">Source: derived, 1,000 GB / 1,099.5 GB of NAND</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Table</h2><span class="idx">08</span></header>
+    <p>State you would read in a terminal or a config. A firewall checks its rules in order and stops at the first match.</p>
+
+    <figure class="fig" data-kind="table">
+      <div class="fig-head"><span class="fig-tag">FIG. 8</span><span class="fig-hint">packet: tcp 22 from 10.0.0.7</span></div>
+      <table>
+        <thead><tr><th class="num">Priority</th><th>Action</th><th>Proto</th><th class="num">Port</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td class="num">100</td><td>allow</td><td>tcp</td><td class="num">443</td><td>0.0.0.0/0</td></tr>
+          <tr><td class="num">200</td><td>allow</td><td>tcp</td><td class="num">80</td><td>0.0.0.0/0</td></tr>
+          <tr data-subj><td class="num">300</td><td>deny</td><td>tcp</td><td class="num">22</td><td>0.0.0.0/0</td></tr>
+          <tr><td class="num">400</td><td>allow</td><td>tcp</td><td class="num">22</td><td>10.0.0.0/8</td></tr>
+          <tr><td class="num">65534</td><td>deny</td><td>all</td><td class="num">*</td><td>0.0.0.0/0</td></tr>
+        </tbody>
+      </table>
+      <figcaption>Rule 300 matches first, so the allow for the internal range at 400 never runs.<span class="fig-src">Source: illustrative rule set</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Schematic</h2><span class="idx">09</span></header>
+    <p>A physical part, flat, in hairlines. A linear keyboard switch, cut through the middle.</p>
+
+    <figure class="fig" data-kind="schematic">
+      <div class="fig-head"><span class="fig-tag">FIG. 9</span><span class="fig-hint">section · not to scale</span></div>
+      <svg role="img" aria-label="Section of a linear key switch: a stem rides in a two-part housing on a spring; a leg on the stem holds two contact leaves apart until the stem has travelled 2 mm of its 4 mm." width="420" height="230" viewBox="0 0 420 230">
+        <path class="ln" d="M184 160 V30 H216 V160 Z"/>
+        <path class="ln" d="M216 146 H246"/>
+        <path class="ln" d="M118 120 V84 H180 M220 84 H282 V120 M110 120 H290 V214 H110 Z"/>
+        <path class="ln" d="M200 160 L188 166 L212 172 L188 178 L212 184 L188 190 L212 196 L188 202 L212 208 L200 214"/>
+        <path class="ln" d="M258 214 V140 M248 214 V176 L252 150"/>
+        <circle class="solid subj" cx="255" cy="150" r="2.5"/>
+        <line class="dash" x1="216" y1="30" x2="300" y2="30"/>
+        <path class="leader" d="M306 30 V110 M301 30 H311 M301 70 H311 M301 110 H311"/>
+        <line class="subj" x1="301" y1="70" x2="311" y2="70"/>
+        <text x="318" y="34">0 mm rest</text>
+        <text class="subj" x="318" y="74">2 mm actuate</text>
+        <text x="318" y="114">4 mm bottom</text>
+        <path class="leader" d="M76 46 H160 L184 58"/><text class="lbl" x="70" y="50" text-anchor="end">STEM</text>
+        <path class="leader" d="M76 100 H118"/><text class="lbl" x="70" y="104" text-anchor="end">HOUSING</text>
+        <path class="leader" d="M76 190 H186"/><text class="lbl" x="70" y="194" text-anchor="end">SPRING</text>
+        <path class="leader" d="M262 170 H312"/><text class="lbl" x="318" y="174">CONTACT</text>
+      </svg>
+      <figcaption>The key registers at the accent point, halfway down: once the stem's leg slides past, the moving leaf springs onto the fixed one.<span class="fig-src">Source: illustrative, typical linear switch, 2 mm actuation, 4 mm travel</span></figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <header class="sec"><h2>Panel</h2><span class="idx">10</span></header>
+    <p>One parameter worth turning: the code, the part, the curve and the numbers together. A spring released from rest, pulled to 1.</p>
+
+    <figure class="fig wide" data-kind="panel" data-interactive>
+      <div class="fig-head"><span class="fig-tag">FIG. 10</span><span class="fig-name">[ spring ]</span><span class="fig-hint" data-hint>unit step · from rest</span></div>
+      <div class="panel">
+        <div class="panel-code">
+          <div><span class="c">// the numbers are the spring</span></div>
+          <div><b>const</b> press = {</div>
+          <div>  <b>type</b>: "spring",</div>
+          <div>  <b>stiffness</b>: <span class="val" data-param="k" data-label="stiffness" data-min="20" data-max="1000" data-step="5">180</span>,</div>
+          <div>  <b>damping</b>: <span class="val" data-param="c" data-label="damping" data-min="0" data-max="60" data-step="1">8</span>,</div>
+          <div>  <b>mass</b>: <span class="val" data-param="m" data-label="mass" data-min="0.1" data-max="4" data-step="0.1">1.0</span>,</div>
+          <div>};</div>
+        </div>
+        <svg role="img" aria-label="Schematic: a mass m hangs from a fixed ceiling on a spring and a damper side by side; a dashed mark x0 shows where it comes to rest." width="170" height="176" viewBox="0 0 170 176">
+          <path class="ln-faint" d="M14 12 l8 -8 M26 12 l8 -8 M38 12 l8 -8 M50 12 l8 -8 M62 12 l8 -8 M74 12 l8 -8 M86 12 l8 -8 M98 12 l8 -8 M110 12 l8 -8 M122 12 l8 -8 M134 12 l8 -8"/>
+          <path class="ln" d="M10 12 H150 M50 12 V22 L40 26 L60 34 L40 42 L60 50 L40 58 L60 66 L40 74 L60 82 L40 90 L60 98 L40 106 L60 114 L50 118 V130 M92 12 V92 M112 12 V92 M95 70 H109 M102 70 V130"/>
+          <rect class="ln" x="30" y="130" width="92" height="40" rx="2"/>
+          <text x="76" y="154" text-anchor="middle">m</text><line class="dash" x1="128" y1="150" x2="146" y2="150"/>
+          <text x="150" y="154">x₀</text>
+        </svg>
+        <div class="plot">
+          <svg role="img" aria-label="Unit step response of the spring" width="400" height="100" viewBox="0 0 400 100" preserveAspectRatio="none">
+            <title>Unit step response with stiffness 180, damping 8, mass 1.0: it overshoots by 37% and stays within 2% of 1 from 0.84s.</title>
+            <line class="ref-line" x1="0" y1="33.3" x2="400" y2="33.3"/>
+            <line class="ref-line" x1="0" y1="100" x2="400" y2="100"/>
+            <line class="ref-line" data-settle x1="209" y1="0" x2="209" y2="100"/>
+            <path class="subj" d="M0.0 100.0 L5.0 97.6 L10.0 91.3 L15.0 82.1 L20.0 71.0 L25.0 59.1 L30.0 47.2 L35.0 36.2 L40.0 26.6 L45.0 18.9 L50.0 13.3 L55.0 9.8 L60.0 8.4 L65.0 8.9 L70.0 11.0 L75.0 14.2 L80.0 18.2 L85.0 22.6 L90.0 27.1 L95.0 31.3 L100.0 35.0 L105.0 38.1 L110.0 40.4 L115.0 41.9 L120.0 42.6 L125.0 42.6 L130.0 41.9 L135.0 40.8 L140.0 39.4 L145.0 37.8 L150.0 36.1 L155.0 34.5 L160.0 33.0 L165.0 31.8 L170.0 30.9 L175.0 30.2 L180.0 29.9 L185.0 29.9 L190.0 30.0 L195.0 30.4 L200.0 30.9 L205.0 31.5 L210.0 32.2"/>
+            <path class="after" d="M210.0 32.2 L215.0 32.8 L220.0 33.3 L225.0 33.8 L230.0 34.2 L235.0 34.4 L240.0 34.6 L250.0 34.6 L260.0 34.3 L270.0 33.8 L280.0 33.4 L290.0 33.0 L300.0 32.9 L310.0 32.9 L320.0 33.0 L330.0 33.1 L340.0 33.3 L350.0 33.4 L360.0 33.5 L380.0 33.5 L400.0 33.4"/>
+          </svg>
+          <span class="y" style="--y:33.3%">1</span><span class="y" style="--y:100%">0</span>
+          <span class="x" style="--x:0%;--tx:0%">0.0</span><span class="x" style="--x:25%">0.4</span><span class="x" style="--x:50%">0.8</span><span class="x" style="--x:75%">1.2</span><span class="x" style="--x:100%;--tx:-100%">1.6s</span>
+          <span class="mark" style="--x:52.3%">settle <span data-out="settle">0.84s</span></span>
+          <span class="legend">x(t) · unit step</span>
+        </div>
+        <div class="fig-foot">
+          <span>m·ẍ = −k(x − x₀) − c·ẋ · ζ = c / 2√(km)</span>
+          <span>k 20-1000 · c 0-60 · m 0.1-4</span>
+          <span>ζ <span data-out="zeta">0.30</span> · settle <span data-out="settle">0.84s</span> · over <span data-out="over">37%</span></span>
+        </div>
+      </div>
+      <figcaption>Stiffness 180 against damping 8 gives a damping ratio of 0.30: the mass overshoots by 37% and is within 2% of rest at 0.84s.<span class="fig-src">Source: computed, m·ẍ = −k(x − x₀) − c·ẋ, 1ms steps</span></figcaption>
+    </figure>
+  </section>
+
+</main>
+<script>
+(() => {
+  const fig = document.querySelector('.fig[data-interactive]');
+  if (!fig) return;
+  const q = (s) => fig.querySelector(s);
+  const p = {};
+  const sim = (k, c, m) => {
+    const xs = [0];
+    let x = 0, v = 0;
+    for (let i = 0; i < 1600; i++) { v += ((-k * (x - 1) - c * v) / m) * 0.001; x += v * 0.001; xs.push(x); }
+    return xs;
+  };
+  const draw = () => {
+    const xs = sim(p.k, p.c, p.m);
+    let last = 0;
+    xs.forEach((x, i) => { if (Math.abs(x - 1) > 0.02) last = i + 1; });
+    const si = Math.min(last, 1600);
+    const pt = (i) => `${(i / 4).toFixed(1)} ${Math.min(110, Math.max(-10, 100 - (xs[i] / 1.5) * 100)).toFixed(1)}`;
+    const line = (a, b) => { let d = 'M' + pt(a); for (let i = a + 20 - (a % 20); i < b; i += 20) d += ' L' + pt(i); return d + ' L' + pt(b); };
+    q('.plot .subj').setAttribute('d', line(0, si));
+    q('.plot .after').setAttribute('d', si < 1600 ? line(si, 1600) : '');
+    const settled = last <= 1600;
+    const sx = (si / 4).toFixed(1);
+    const marker = q('[data-settle]');
+    marker.setAttribute('x1', sx); marker.setAttribute('x2', sx);
+    marker.style.display = q('.plot .mark').style.display = settled ? '' : 'none';
+    q('.plot .mark').style.setProperty('--x', (si / 16) + '%');
+    const zeta = p.c / (2 * Math.sqrt(p.k * p.m));
+    const over = Math.max(0, Math.max(...xs) - 1);
+    const settle = settled ? (si / 1000).toFixed(2) + 's' : '>1.6s';
+    fig.querySelectorAll('[data-out="settle"]').forEach((el) => { el.textContent = settle; });
+    q('[data-out="zeta"]').textContent = zeta.toFixed(2);
+    q('[data-out="over"]').textContent = Math.round(over * 100) + '%';
+    q('.plot title').textContent = `Unit step response with stiffness ${p.k}, damping ${p.c}, mass ${p.m.toFixed(1)}: it overshoots by ${Math.round(over * 100)}% and ${settled ? 'stays within 2% of 1 from ' + settle : 'has not settled by 1.6s'}.`;
+  };
+  fig.querySelectorAll('[data-param]').forEach((el) => {
+    const { param, min, max, step, label } = el.dataset;
+    const lo = +min, hi = +max, st = +step, dp = (step.split('.')[1] || '').length;
+    const set = (v) => {
+      v = Math.min(hi, Math.max(lo, Math.round(v / st) * st));
+      p[param] = +v.toFixed(dp);
+      el.textContent = v.toFixed(dp);
+      el.setAttribute('aria-valuenow', p[param]);
+      draw();
+    };
+    p[param] = parseFloat(el.textContent);
+    Object.entries({ role: 'slider', tabindex: '0', 'aria-label': label, 'aria-valuemin': min, 'aria-valuemax': max, 'aria-valuenow': p[param] })
+      .forEach(([k, v]) => el.setAttribute(k, v));
+    el.addEventListener('pointerdown', (e) => {
+      const x0 = e.clientX, v0 = p[param];
+      el.setPointerCapture(e.pointerId);
+      const move = (ev) => set(v0 + ((ev.clientX - x0) / 240) * (hi - lo));
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', () => el.removeEventListener('pointermove', move), { once: true });
+    });
+    el.addEventListener('keydown', (e) => {
+      const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+      if (d) { e.preventDefault(); set(p[param] + d * st * (e.shiftKey ? 10 : 1)); }
+    });
+  });
+  q('[data-hint]').textContent = 'drag a number · arrow keys';
+})();
+</script>
+</body>
+</html>

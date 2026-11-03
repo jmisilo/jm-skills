@@ -1,0 +1,4 @@
+interface:
+  display_name: "jm-explain"
+policy:
+  allow_implicit_invocation: false

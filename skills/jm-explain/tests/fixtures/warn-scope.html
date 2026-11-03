@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>warn-scope</title>
+<!-- Checker fixture: no FAIL, only scope WARNs. 8 steps, 11 figures, over 2,500 prose words, one em dash in prose (the one in <code> and the one in the ascii pre are ignored). -->
+<style>
+:root {
+  --paper: #fafafa; --ink: #171717; --ink-2: #525252; --muted: #8f8f8f; --faint: #bdbdbd;
+  --rule: #ebebeb; --well: #efefef; --accent: #1f6feb; --accent-soft: color-mix(in oklch, var(--accent) 14%, transparent);
+  --fault: #c4362f;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, "DejaVu Sans Mono", Consolas, monospace;
+  --measure: 620px; --fig-width: 880px;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body { margin: 0; color: var(--ink); font: 15px/1.6 var(--sans); }
+.page { max-width: var(--measure); margin: 0 auto; padding: 48px 16px; }
+h1 { font-size: 22px; line-height: 1.3; font-weight: 600; }
+h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.sec { display: flex; align-items: center; gap: 12px; margin-top: 48px; }
+.sec::after { content: ""; flex: 1; order: 1; border-top: 1px solid var(--rule); }
+.idx { order: 2; }
+.prompt { font: 13px/1.6 var(--mono); color: var(--ink-2); padding-left: 2ch; text-indent: -2ch; margin: 0; }
+.prompt b { color: var(--ink); }
+.caret { color: var(--muted); }
+.meta, .idx, .fig-tag, .fig-hint, .fig-src { font: 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+dl.terms dt { font: 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); }
+dl.terms dd { margin: 0 0 12px; }
+a { color: var(--ink); text-decoration-color: var(--faint); }
+code { font: .9em var(--mono); border: 1px solid var(--rule); border-radius: 4px; padding: 0 3px; }
+.inferred { text-decoration: underline dotted var(--faint); }
+.fig { margin: 40px 0; border: 0; background: none; }
+.fig-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.fig > svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.fig svg * { vector-effect: non-scaling-stroke; }
+.fig svg text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); stroke: none; }
+.fig svg text.lbl { font-size: 11px; }
+.fig svg line, .fig svg rect, .fig svg path { fill: none; stroke: var(--ink-2); stroke-width: 1; }
+.fig svg .subj { stroke: var(--accent); stroke-width: 1.5; }
+.fig svg text.subj, .val { fill: var(--accent); color: var(--accent); stroke: none; }
+.ascii { container-type: inline-size; }
+.ascii pre { margin: 0; padding: 0; font-family: var(--mono); line-height: 1.2; color: var(--ink-2); user-select: none; font-size: min(1em, calc(100cqw / (var(--cols) * 0.62))); }
+.ascii svg.ah path { fill: currentColor; stroke: none; }
+.tl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; font: 12px/1.4 var(--mono); color: var(--ink-2); }
+.tl .track { position: relative; height: 8px; background: var(--well); }
+.tl .bar { position: absolute; top: 0; bottom: 0; left: var(--s); width: var(--w); background: var(--ink-2); }
+.tl .bar.subj { background: var(--accent); }
+.tl .ticks { position: relative; height: 16px; }
+.tl .ticks span { position: absolute; left: var(--x); transform: translateX(-50%); }
+.tl .ticks span:last-child { transform: translateX(-100%); }
+.tl .ticks span:first-child { transform: none; }
+figcaption { margin-top: 16px; border-top: 1px dotted var(--rule); padding-top: 10px; font: 13px/1.5 var(--sans); color: var(--ink-2); }
+.fig-src { display: block; margin-top: 4px; }
+ol.sources { font-size: 13px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main class="page">
+  <header data-part="prompt">
+    <p class="prompt"><span class="caret">&gt;</span> <b>/jm-explain</b> how does a DNS lookup find an address?</p>
+    <p class="meta">5 figures · 2 sources · 3 Nov 2026</p>
+  </header>
+
+  <section data-part="problem">
+    <h1>How a DNS lookup finds an address</h1>
+    <p>Computers reach each other by number, people remember names. DNS turns a name like <code>example.com</code> into an address.</p>
+    <p>No single server knows every name, so a resolver asks a chain of servers, each one closer to the answer.</p>
+    <figure class="fig" data-kind="schematic">
+      <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">overview</span></div>
+      <svg role="img" aria-label="Client asks a resolver, the resolver asks the name servers" viewBox="0 0 430 100" width="430" height="100">
+        <rect x="10" y="30" width="100" height="40"/>
+        <text x="60" y="54" text-anchor="middle">client</text>
+        <line class="subj" x1="110" y1="50" x2="165" y2="50"/>
+        <rect x="165" y="30" width="100" height="40"/>
+        <text x="215" y="54" text-anchor="middle">resolver</text>
+        <line x1="265" y1="50" x2="320" y2="50" stroke-dasharray="1 1"/>
+        <rect x="320" y="30" width="100" height="40"/>
+        <text x="370" y="54" text-anchor="middle">servers</text>
+      </svg>
+      <figcaption>One question from the client, several from the resolver.<span class="fig-src">Source: RFC 1034</span></figcaption>
+    </figure>
+  </section>
+
+  <section data-part="primer">
+    <header class="sec"><h2>Before you start</h2><span class="idx">00</span></header>
+    <dl class="terms">
+      <dt>Resolver</dt><dd>The server that does the asking on your behalf.</dd>
+      <dt>Zone</dt><dd>The part of the name space one server is responsible for.</dd>
+    </dl>
+  </section>
+
+  <section data-part="mechanism" data-step="1">
+    <header class="sec"><h2>Step 1</h2><span class="idx">01</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 2</span></div>
+    <svg role="img" aria-label="step 1" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 1</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="2">
+    <header class="sec"><h2>Step 2</h2><span class="idx">02</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 3</span></div>
+    <svg role="img" aria-label="step 2" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 2</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="3">
+    <header class="sec"><h2>Step 3</h2><span class="idx">03</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 4</span></div>
+    <svg role="img" aria-label="step 3" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 3</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="4">
+    <header class="sec"><h2>Step 4</h2><span class="idx">04</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 5</span></div>
+    <svg role="img" aria-label="step 4" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 4</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="5">
+    <header class="sec"><h2>Step 5</h2><span class="idx">05</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 6</span></div>
+    <svg role="img" aria-label="step 5" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 5</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="6">
+    <header class="sec"><h2>Step 6</h2><span class="idx">06</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 7</span></div>
+    <svg role="img" aria-label="step 6" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 6</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="7">
+    <header class="sec"><h2>Step 7</h2><span class="idx">07</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 8</span></div>
+    <svg role="img" aria-label="step 7" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 7</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="mechanism" data-step="8">
+    <header class="sec"><h2>Step 8</h2><span class="idx">08</span></header>
+    <p>The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. The resolver walks the chain one referral at a time and keeps what it learns so the next lookup is short. </p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 9</span></div>
+    <svg role="img" aria-label="step 8" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">step 8</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  </section>
+  <section data-part="finish">
+    <header class="sec"><h2>What transfers</h2><span class="idx">05</span></header>
+    <p>A lookup is a chain of referrals — it ends in one record, and caching makes the chain rare.</p>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 10</span></div>
+    <svg role="img" aria-label="extra a" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">a</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+  <figure class="fig" data-kind="schematic">
+    <div class="fig-head"><span class="fig-tag">FIG. 11</span></div>
+    <svg role="img" aria-label="extra b" viewBox="0 0 430 60" width="430" height="60"><text x="10" y="30">b</text></svg>
+    <figcaption>Caption.</figcaption>
+  </figure>
+
+  </section>
+
+  <section data-part="sources">
+    <header class="sec"><h2>Sources</h2></header>
+    <ol class="sources">
+      <li id="s1">RFC 1034, Domain names: concepts and facilities. <a href="https://www.rfc-editor.org/rfc/rfc1034">rfc-editor.org</a></li>
+      <li id="s2">RFC 1035, Domain names: implementation and specification.</li>
+    </ol>
+  </section>
+</main>
+</body>
+</html>
