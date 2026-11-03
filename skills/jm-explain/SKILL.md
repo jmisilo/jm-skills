@@ -73,7 +73,7 @@ The template already encodes this order; the checker verifies it.
 - Every paragraph in a mechanism step makes one claim; its figure shows that claim; its caption says in one sentence what to notice.
 - Name real things: identifiers, part names, field names, numbers with units (`300 ms`, `53/udp`, `45 cN`). A vague noun where a real name exists reads as a guess. Join a number and its unit with `&nbsp;` so they never wrap apart.
 - In prose, use at most one accent mark per section, on the subject's name. Values in prose stay ink; the figure is where values carry the accent. Several blue words in a paragraph read as links.
-- A claim you did not read in a source carries `<span class="inferred">`. The reader must be able to tell knowledge from reconstruction. A ref covers only the sentence it ends; every causal or "why" sentence and every primer definition gets its own ref or the inferred mark.
+- A claim you did not read in a source carries `<span class="inferred">`. The reader must be able to tell knowledge from reconstruction. A ref covers only the sentence it ends; every causal or "why" sentence, every primer definition and every claim in the finish and its limits gets its own ref or the inferred mark.
 - Close on the recipe in words. No code block at the end; code appears only where a step is about that code.
 - Aim for 900 to 1,400 words of prose and 4 or 5 mechanism steps; use 6 or 7 only when the question needs them. Each mechanism paragraph stays under 100 words. A table or byte layout stays only if the question is about that detail. The checker WARNs above 1,600 words.
 - Write without em dashes; use commas, colons or full stops.
