@@ -345,7 +345,7 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
       <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">one load · typical latencies</span></div>
       <div class="ascii" role="img" aria-label="A load misses L1d (5 cycles) and L2 (14 cycles), hits L3 (about 50 cycles) and never reaches DRAM (about 100ns)." style="--cols:50"><pre aria-hidden="true"> load                              not reached
 ┌──────┐ miss ┌──────┐ miss ┌──────┐      ┌┄┄┄┄┄┄┐
-│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 10" style="width:1ch;height:1em;vertical-align:-0.1em"><path d="M0 1.5 L6 5 L0 8.5 Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
+│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
 │ 48K  │      │  2M  │      │ 36M  │      ┆ 32G  ┆
 └──────┘      └──────┘      └──────┘      └┄┄┄┄┄┄┘
  5 cyc         14 cyc       <span class="subj">~50 cyc hit</span>    ~100 ns</pre></div>
