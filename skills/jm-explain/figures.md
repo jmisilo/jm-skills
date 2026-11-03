@@ -44,6 +44,7 @@ Markup, in this order. `<figure>` takes no `role`.
 - No border, background, shadow, radius or card on the figure. It sits on the paper.
 - Accent only through `.subj`, `[data-subj]` or `.val`, and only on the one thing the paragraph is about. `.fault` (red) only for a real failure.
 - Text: data labels `--mono` 12px original case; chrome labels 11px UPPERCASE `.lbl` (in SVG, write them in capitals).
+- Chrome labels (uppercase) never hold identifiers, formulas or units whose case matters (`IPv4`, `m·ẍ`, `ms`, `MiB`). Those go in the data-label style, 12px mono in original case.
 
 ### Hairlines
 
@@ -147,7 +148,7 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 
 ## stack
 
-- Div grid, top layer first, one row per layer: name (11px caps), what it adds, a size or number right-aligned.
+- Div grid, top layer first, one row per layer: name (12px, `--ink`, original case: `IPv4`, not `IPV4`), what it adds, a size or number right-aligned.
 - 1px `--faint` border per layer, 4px gaps, no fills. The subject layer gets `data-subj` (accent border and text).
 - 3 to 6 layers. Say the direction of travel in the hint.
 
@@ -155,11 +156,11 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 <figure class="fig" data-kind="stack">
   <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">sending runs top to bottom</span></div>
   <div class="stack" role="img" aria-label="Network stack for one HTTPS request: HTTP carries the request, TLS adds a 5 byte header and 16 byte tag, TCP adds 20 bytes, IPv4 adds 20 bytes, Ethernet adds 14 bytes plus a 4 byte checksum.">
-    <div><span>http/1.1</span><span>GET /index.html</span><span>payload</span></div>
-    <div data-subj><span>tls 1.3</span><span>record header, auth tag</span><span>5 + 16 B</span></div>
-    <div><span>tcp</span><span>ports, sequence numbers</span><span>20 B</span></div>
-    <div><span>ipv4</span><span>source, destination</span><span>20 B</span></div>
-    <div><span>ethernet</span><span>MAC addresses, FCS</span><span>14 + 4 B</span></div>
+    <div><span>HTTP/1.1</span><span>GET /index.html</span><span>payload</span></div>
+    <div data-subj><span>TLS 1.3</span><span>record header, auth tag</span><span>5 + 16 B</span></div>
+    <div><span>TCP</span><span>ports, sequence numbers</span><span>20 B</span></div>
+    <div><span>IPv4</span><span>source, destination</span><span>20 B</span></div>
+    <div><span>Ethernet</span><span>MAC addresses, FCS</span><span>14 + 4 B</span></div>
   </div>
   <figcaption>Each layer wraps the one above in its own header. TLS is the only layer that also hides what it wraps.<span class="fig-src">Source: RFC 8446, RFC 9293, RFC 791, IEEE 802.3</span></figcaption>
 </figure>
@@ -358,6 +359,6 @@ The spring reference drawn in the light palette. Use it once per page at most, f
       <span>ζ <span data-out="zeta">0.30</span> · settle <span data-out="settle">0.84s</span> · over <span data-out="over">37%</span></span>
     </div>
   </div>
-  <figcaption>Stiffness 180 against damping 8 gives a damping ratio of 0.30: the mass overshoots by 37% and is within 2% of rest at 0.84s.<span class="fig-src">Source: computed, m·ẍ = −k(x − x₀) − c·ẋ, 1ms steps</span></figcaption>
+  <figcaption>Stiffness 180 against damping 8 gives a damping ratio of 0.30: the mass overshoots by 37% and is within 2% of rest at 0.84s.<span class="fig-src">Source: computed, 1ms steps</span></figcaption>
 </figure>
 ```

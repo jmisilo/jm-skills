@@ -99,6 +99,7 @@ These are the defaults agents produce without this skill, each with what to do i
 - An open SVG `path` or `polyline` without `fill="none"` closes into a black shape.
 - An SVG drawn small and shown large inflates its labels and strokes. Give each figure SVG a `width` equal to its viewBox width; the probe's `bigText` catches misses.
 - A viewBox wider than about 430 shrinks 11px labels under 9px at 390 wide. Narrow the drawing, move labels to HTML, or add a stacked variant (figures.md).
+- Chrome labels (`.fig-tag`, axis titles, `.fig-src`, `dl` terms) are uppercased by CSS, which turns `IPv4` into `IPV4` and `m·ẍ` into `M·Ẍ`. Identifiers, formulas and units whose case matters go in data labels, which keep their case.
 - `agent-browser open` needs an absolute `file://` path.
 - An interactive figure (one per page at most) must show a meaningful static state with JavaScript off, because the page may be printed or read as a file.
 - Editing `:root` makes the checker FAIL every colour. The palette is fixed on purpose: one look across every explanation.

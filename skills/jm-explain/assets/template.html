@@ -133,7 +133,7 @@ ol.steps > li::before {
   font-variant-numeric: tabular-nums;
   color: var(--faint);
 }
-ol.steps > li > b:first-child { color: var(--ink); }
+ol.steps > li > span > b:first-child { color: var(--ink); }
 
 /* == sources == */
 ol.sources { margin: 0; padding: 0; list-style: none; counter-reset: src; font-size: 14px; }
@@ -246,7 +246,7 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 /* stack: one hairline block per layer, top of the stack first */
 .stack { display: grid; gap: 4px; font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
 .stack > div { display: grid; grid-template-columns: 9ch 1fr auto; gap: 16px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--faint); }
-.stack > div > :first-child { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.stack > div > :first-child { color: var(--ink); }
 .stack > div > :last-child { text-align: right; }
 .stack > [data-subj] { border-color: var(--accent); }
 
@@ -432,7 +432,7 @@ sync        │ copy │ check │  two icons, two slots:
 
   <section data-part="finish">
     <header class="sec"><h2>What it comes down to</h2><span class="idx">05</span></header>
-    <p>One idea carries the whole effect: <mark class="subj">turn the swap into a remount, then animate the remount</mark>. The key makes the change a remount, <code>AnimatePresence</code> gives the leaving icon time to go, <code>popLayout</code> keeps both in one place, and a quiet spring times it.</p>
+    <p>One idea carries the whole effect: <strong>turn the swap into a remount, then animate the remount</strong>. The key makes the change a remount, <code>AnimatePresence</code> gives the leaving icon time to go, <code>popLayout</code> keeps both in one place, and a quiet spring times it.</p>
     <p>The same recipe works for any icon with two states, such as play and pause or mute and unmute:</p>
     <ol class="steps">
       <li><span><b>Key the icon on state.</b> One <code>m.span</code> inside <code>AnimatePresence</code>, with <code>key={state}</code>.</span></li>
