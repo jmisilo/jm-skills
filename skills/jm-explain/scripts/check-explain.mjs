@@ -40,6 +40,7 @@ const RULES = {
   "callout-element": ["FAIL", "replace blockquote/aside with a plain paragraph, a primer term or a caption"],
   "border-width": ["FAIL", "use 1px hairlines only"],
   "svg-stroke": ["WARN", "draw strokes at 1px; only .subj/.accent strokes may go up to 2"],
+  "accent-prose": ["WARN", "keep at most one accent mark in the prose of a section, on the subject's name; values in prose stay ink, the figure carries the accent"],
   "accent-chrome": ["WARN", "keep the accent on the subject (.subj, [data-subj], .val), not on headings, tags, prompt or links"],
   // figures (R4)
   "fig-class": ["FAIL", "give every <figure> class=\"fig\""],
@@ -780,6 +781,16 @@ if (words > 2500) report("word-count", `${words} prose words`);
 for (const [host, t] of dashed) {
   const k = t.indexOf("—");
   report("em-dash", `em dash in ${label(host)} "${snippet(t.slice(Math.max(0, k - 20), k + 20))}" (${at(host)})`);
+}
+
+// accent hooks in prose (R3): at most one per part, outside figures
+const isHook = (e) => e.cls.has("subj") || e.cls.has("val") || e.attrs["data-subj"] !== undefined;
+for (const part of topParts) {
+  const hooks = elements(part, (e) => isHook(e) && !closest(e, (a) => a.tag === "figure") && !closest(e.parent, isHook));
+  if (hooks.length > 1) {
+    const words = hooks.slice(0, 4).map((h) => `"${snippet(textOf(h), 20)}"`).join(", ");
+    report("accent-prose", `${hooks.length} accent hooks in the prose of data-part="${part.attrs["data-part"]}": ${words}${hooks.length > 4 ? ", ..." : ""} (${at(part)})`);
+  }
 }
 
 // ---------- output ----------

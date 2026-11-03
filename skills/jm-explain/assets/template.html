@@ -403,7 +403,7 @@ sync        │ copy │ check │  two icons, two slots:
 
   <section data-part="mechanism" data-step="4">
     <header class="sec"><h2>A spring with no bounce</h2><span class="idx">04</span></header>
-    <p>The transition is a spring with <code>bounce: <span class="val">0</span></code> and <code>duration: <span class="val">0.3</span></code>, in seconds, since that is the unit Motion takes. A bounce of 0 is critically damped: the value rises fast and settles without overshoot, so the icon never grows past full size.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">From those two numbers Motion solves for a spring of about stiffness 947 and damping 62, which is 99% of the way there at 216ms.</span> Last, <code>initial={false}</code> on <code>AnimatePresence</code> skips the enter animation on the first render, so the icon is simply there when the page loads.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p>The transition is a spring with <code>bounce: 0</code> and <code>duration: 0.3</code>, in seconds, since that is the unit Motion takes. A bounce of 0 is critically damped: the value rises fast and settles without overshoot, so the icon never grows past full size.<sup class="ref"><a href="#s2">2</a></sup> <span class="inferred">From those two numbers Motion solves for a spring of about stiffness 947 and damping 62, which is 99% of the way there at 216ms.</span> Last, <code>initial={false}</code> on <code>AnimatePresence</code> skips the enter animation on the first render, so the icon is simply there when the page loads.<sup class="ref"><a href="#s1">1</a></sup></p>
 
     <figure class="fig" data-kind="chart">
       <div class="fig-head"><span class="fig-tag">FIG. 5</span><span class="fig-hint">enter · exit runs it backwards</span></div>
@@ -437,9 +437,9 @@ sync        │ copy │ check │  two icons, two slots:
     <ol class="steps">
       <li><span><b>Key the icon on state.</b> One <code>m.span</code> inside <code>AnimatePresence</code>, with <code>key={state}</code>.</span></li>
       <li><span><b>Pop the leaver out of layout.</b> Set <code>mode="popLayout"</code> and give the button a position.</span></li>
-      <li><span><b>Mirror enter and exit.</b> Out to opacity <span class="val">0</span>, scale <span class="val">0.25</span>, blur <span class="val">4px</span>; in by the reverse.</span></li>
-      <li><span><b>Use one quiet spring.</b> <code>bounce: <span class="val">0</span></code>, <code>duration: <span class="val">0.3</span></code>, and <code>initial={false}</code> so nothing plays on load.</span></li>
-      <li><span><b>Time the way back.</b> <span class="inferred">A timer sets the state back to <code>idle</code></span> after <span class="val">2000ms</span>.</span></li>
+      <li><span><b>Mirror enter and exit.</b> Out to opacity 0, scale 0.25, blur 4px; in by the reverse.</span></li>
+      <li><span><b>Use one quiet spring.</b> <code>bounce: 0</code>, <code>duration: 0.3</code>, and <code>initial={false}</code> so nothing plays on load.</span></li>
+      <li><span><b>Time the way back.</b> <span class="inferred">A timer sets the state back to <code>idle</code></span> after 2000ms.</span></li>
     </ol>
     <p><b>Limits.</b> This page reads the effect from the interfaces.dev description and the Motion docs, not from the site's source, so the timer and the spring constants are inferred. <span class="inferred">A blur filter costs more to paint than opacity or scale</span>, which is fine for one small icon but not for a long list. Under reduced motion, a plain fade is the safer swap.</p>
   </section>

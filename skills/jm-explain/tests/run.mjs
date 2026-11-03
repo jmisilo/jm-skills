@@ -19,7 +19,7 @@ const tokens = join(fixtures, "tokens.html");
 
 const CASES = {
   "ok-minimal.html": { fail: [], warn: [] },
-  "warn-scope.html": { fail: [], warn: ["step-count", "figure-count", "word-count", "em-dash"] },
+  "warn-scope.html": { fail: [], warn: ["step-count", "figure-count", "word-count", "em-dash", "accent-prose"] },
   "tight-but-ok.html": { gallery: true, fail: [], warn: [] },
   "broken-overlap.html": { gallery: true, fail: [], warn: [] },
   "broken-scaled-svg.html": { gallery: true, fail: [], warn: ["svg-size"] },

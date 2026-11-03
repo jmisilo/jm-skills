@@ -70,7 +70,8 @@ The template already encodes this order; the checker verifies it.
 
 - Open the problem section with the thing's job, not its history or an analogy. Analogies come after the real mechanism, if at all.
 - Every paragraph in a mechanism step makes one claim; its figure shows that claim; its caption says in one sentence what to notice.
-- Name real things: identifiers, part names, field names, numbers with units (`300ms`, `53/udp`, `45 g`). A vague noun where a real name exists reads as a guess.
+- Name real things: identifiers, part names, field names, numbers with units (`300 ms`, `53/udp`, `45 cN`). A vague noun where a real name exists reads as a guess. Join a number and its unit with `&nbsp;` so they never wrap apart.
+- In prose, use at most one accent mark per section, on the subject's name. Values in prose stay ink; the figure is where values carry the accent. Several blue words in a paragraph read as links.
 - A claim you did not read in a source carries `<span class="inferred">`. The reader must be able to tell knowledge from reconstruction.
 - Close on the recipe in words. No code block at the end; code appears only where a step is about that code.
 - Keep prose under 2,500 words. Every paragraph that doesn't move the reader toward the answer goes.
@@ -84,6 +85,7 @@ These are the defaults agents produce without this skill, each with what to do i
 | --- | --- |
 | Cream or beige paper with a rust or red accent | The template's neutral grey paper and its one blue accent |
 | Accent on section numbers, headings, bullets, callout bars | Accent only on `.subj`, `[data-subj]` and `.val`: the thing being explained and its values |
+| Accent on every value in a paragraph | At most one accent mark in a section's prose; values get the accent inside the figure |
 | Each figure in a filled, bordered card | The figure sits on the paper; `.fig-head` above and the dotted caption rule below frame it |
 | A left-border blockquote "Note" or "Why?" callout | A sentence in the paragraph, or a primer term |
 | A TL;DR or "short version" box at the top | The problem section is the summary |
