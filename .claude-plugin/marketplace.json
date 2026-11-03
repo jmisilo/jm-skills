@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "jm-skills",
+  "owner": {
+    "name": "Jakub Misiło"
+  },
+  "metadata": {
+    "description": "JM's agent skills: writing skills, planning complex work, verification loops, coding style and explainer pages.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "jm-skills",
+      "description": "All JM skills: jm-write-skill, jm-complex-workflow, jm-compose-loop, jm-coding-styleguide and jm-explain.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/jm-write-skill",
+        "./skills/jm-complex-workflow",
+        "./skills/jm-compose-loop",
+        "./skills/jm-coding-styleguide",
+        "./skills/jm-explain"
+      ]
+    }
+  ]
+}
