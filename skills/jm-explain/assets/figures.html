@@ -192,6 +192,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig svg text.mut { fill: var(--muted); }
 .fig svg .ln { stroke: var(--ink-2); fill: none; }
 .fig svg .ln-faint { stroke: var(--faint); fill: none; }
+/* drawings (schematic, panel): object outlines a step bolder than the annotations */
+.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part { stroke: var(--ink); stroke-width: 1.5; fill: none; }
 .fig svg .leader { stroke: var(--muted); fill: none; }
 .fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
 .fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }
@@ -482,11 +484,11 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
     <figure class="fig" data-kind="schematic">
       <div class="fig-head"><span class="fig-tag">FIG. 9</span><span class="fig-hint">section · not to scale</span></div>
       <svg role="img" aria-label="Section of a linear key switch: a stem rides in a two-part housing on a spring; a leg on the stem holds two contact leaves apart until the stem has travelled 2 mm of its 4 mm." width="420" height="230" viewBox="0 0 420 230">
-        <path class="ln" d="M184 160 V30 H216 V160 Z"/>
-        <path class="ln" d="M216 146 H246"/>
-        <path class="ln" d="M118 120 V84 H180 M220 84 H282 V120 M110 120 H290 V214 H110 Z"/>
-        <path class="ln" d="M200 160 L188 166 L212 172 L188 178 L212 184 L188 190 L212 196 L188 202 L212 208 L200 214"/>
-        <path class="ln" d="M258 214 V140 M248 214 V176 L252 150"/>
+        <path class="part" d="M184 160 V30 H216 V160 Z"/>
+        <path class="part" d="M216 146 H246"/>
+        <path class="part" d="M118 120 V84 H180 M220 84 H282 V120 M110 120 H290 V214 H110 Z"/>
+        <path class="part" d="M200 160 L188 166 L212 172 L188 178 L212 184 L188 190 L212 196 L188 202 L212 208 L200 214"/>
+        <path class="part" d="M258 214 V140 M248 214 V176 L252 150"/>
         <circle class="solid subj" cx="255" cy="150" r="2.5"/>
         <line class="dash" x1="216" y1="30" x2="300" y2="30"/>
         <path class="leader" d="M306 30 V110 M301 30 H311 M301 70 H311 M301 110 H311"/>
@@ -521,8 +523,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
         </div>
         <svg role="img" aria-label="Schematic: a mass m hangs from a fixed ceiling on a spring and a damper side by side; a dashed mark x0 shows where it comes to rest." width="170" height="176" viewBox="0 0 170 176">
           <path class="ln-faint" d="M14 12 l8 -8 M26 12 l8 -8 M38 12 l8 -8 M50 12 l8 -8 M62 12 l8 -8 M74 12 l8 -8 M86 12 l8 -8 M98 12 l8 -8 M110 12 l8 -8 M122 12 l8 -8 M134 12 l8 -8"/>
-          <path class="ln" d="M10 12 H150 M50 12 V22 L40 26 L60 34 L40 42 L60 50 L40 58 L60 66 L40 74 L60 82 L40 90 L60 98 L40 106 L60 114 L50 118 V130 M92 12 V92 M112 12 V92 M95 70 H109 M102 70 V130"/>
-          <rect class="ln" x="30" y="130" width="92" height="40" rx="2"/>
+          <path class="part" d="M10 12 H150 M50 12 V22 L40 26 L60 34 L40 42 L60 50 L40 58 L60 66 L40 74 L60 82 L40 90 L60 98 L40 106 L60 114 L50 118 V130 M92 12 V92 M112 12 V92 M95 70 H109 M102 70 V130"/>
+          <rect class="part" x="30" y="130" width="92" height="40" rx="2"/>
           <text x="76" y="154" text-anchor="middle">m</text><line class="dash" x1="128" y1="150" x2="146" y2="150"/>
           <text x="150" y="154">x₀</text>
         </svg>

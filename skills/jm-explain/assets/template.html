@@ -195,6 +195,8 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 .fig svg text.mut { fill: var(--muted); }
 .fig svg .ln { stroke: var(--ink-2); fill: none; }
 .fig svg .ln-faint { stroke: var(--faint); fill: none; }
+/* drawings (schematic, panel): object outlines a step bolder than the annotations */
+.fig[data-kind="schematic"] svg .part, .fig[data-kind="panel"] svg .part { stroke: var(--ink); stroke-width: 1.5; fill: none; }
 .fig svg .leader { stroke: var(--muted); fill: none; }
 .fig svg .dot { stroke: var(--muted); stroke-dasharray: 1 1; fill: none; }
 .fig svg .life { stroke: var(--faint); stroke-dasharray: 1 2; fill: none; }

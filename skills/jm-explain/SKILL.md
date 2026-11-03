@@ -3,7 +3,7 @@ name: jm-explain
 description: "Explain how something is built (software, system, hardware or process) as one mono-paper HTML page with figures, or in chat with --md."
 disable-model-invocation: true
 argument-hint: "[--md] <topic or question>"
-allowed-tools: "Bash(node *), Bash(agent-browser *), Bash(open *), Bash(xdg-open *), Bash(mkdir *), WebSearch, WebFetch"
+allowed-tools: "Bash(node *), Bash(agent-browser *), Bash(open *), Bash(xdg-open *), Bash(mkdir *), Bash(cp *), WebSearch, WebFetch"
 ---
 
 # Explain how it is built
