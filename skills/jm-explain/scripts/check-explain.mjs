@@ -39,7 +39,7 @@ const RULES = {
   "callout-border": ["FAIL", "drop the thick left border; make the point in the prose or the figure caption"],
   "callout-element": ["FAIL", "replace blockquote/aside with a plain paragraph, a primer term or a caption"],
   "border-width": ["FAIL", "use 1px hairlines only"],
-  "svg-stroke": ["WARN", "draw strokes at 1px; only .subj/.accent strokes may go up to 2"],
+  "svg-stroke": ["WARN", "draw strokes at 1px; .part strokes may go up to 1.5 and .subj/.accent up to 2"],
   "accent-prose": ["WARN", "keep at most one accent mark in the prose of a section, on the subject's name; values in prose stay ink, the figure carries the accent"],
   "accent-chrome": ["WARN", "keep the accent on the subject (.subj, [data-subj], .val), not on headings, tags, prompt or links"],
   // figures (R4)
@@ -386,6 +386,8 @@ const CHROME_CLASSES = new Set(["idx", "fig-tag", "prompt", "caret"]);
 const selTargetsFigure = (sel) => lastCompounds(sel).some((c) => !c.pseudoEl && (c.tag === "figure" || c.classes.includes("fig")));
 const selTargetsChrome = (sel) => lastCompounds(sel).some((c) => CHROME_TAGS.has(c.tag) || c.classes.some((k) => CHROME_CLASSES.has(k)));
 const SUBJ_SEL = /\.(subj|accent)(?![\w-])|\[\s*data-subj/;
+const PART_SEL = /\.part(?![\w-])/;
+const strokeMaxFor = (subj, part) => (subj ? 2 : part ? 1.5 : 1);
 
 // ---------- colour ----------
 
@@ -512,7 +514,7 @@ for (const r of cssRules) {
       where: `${where} { ${d.prop}: ${snippet(d.value, 50)} } (${atCss(r, d)})`,
       figure: selTargetsFigure(r.selector),
       chrome: selTargetsChrome(r.selector),
-      strokeMax: SUBJ_SEL.test(r.selector) ? 2 : 1,
+      strokeMax: strokeMaxFor(SUBJ_SEL.test(r.selector), PART_SEL.test(r.selector)),
     });
   }
 }
@@ -550,6 +552,7 @@ const HREF_LOADS = new Set(["link", "use", "image", "feimage", "script"]);
 const sourcesPart = all.find((e) => e.attrs["data-part"] === "sources" && !closest(e.parent, (a) => a.attrs["data-part"] !== undefined));
 for (const el of all) {
   const subj = !!closest(el, (e) => e.cls.has("subj") || e.cls.has("accent") || "data-subj" in e.attrs);
+  const strokeMax = strokeMaxFor(subj, !!closest(el, (e) => e.cls.has("part")));
   const isFig = el.tag === "figure" || el.cls.has("fig");
   const isChrome = CHROME_TAGS.has(el.tag) || [...el.cls].some((k) => CHROME_CLASSES.has(k));
   if (el.attrs.style !== undefined) {
@@ -558,7 +561,7 @@ for (const el of all) {
       if (lit) report("color-literal", `${lit} in style="" on ${label(el)} (${at(el)})`);
       checkDecl(d, {
         where: `style="${snippet(el.attrs.style, 50)}" on ${label(el)} (${at(el)})`,
-        figure: isFig, chrome: isChrome, strokeMax: subj ? 2 : 1,
+        figure: isFig, chrome: isChrome, strokeMax,
       });
     }
   }
@@ -567,8 +570,8 @@ for (const el of all) {
     const lit = findLiteral(el.attrs[a], "fill");
     if (lit) report("color-literal", `${a}="${el.attrs[a]}" on ${label(el)} (${at(el)})`);
   }
-  if (el.attrs["stroke-width"] !== undefined && parseFloat(el.attrs["stroke-width"]) > (subj ? 2 : 1)) {
-    report("svg-stroke", `stroke-width="${el.attrs["stroke-width"]}" (max ${subj ? 2 : 1}) on ${label(el)} (${at(el)})`);
+  if (el.attrs["stroke-width"] !== undefined && parseFloat(el.attrs["stroke-width"]) > strokeMax) {
+    report("svg-stroke", `stroke-width="${el.attrs["stroke-width"]}" (max ${strokeMax}) on ${label(el)} (${at(el)})`);
   }
   if (el.tag === "lineargradient" || el.tag === "radialgradient") report("gradient", `<${el.tag}> (${at(el)})`);
   if (el.tag === "blockquote" || el.tag === "aside") report("callout-element", `<${el.tag}> (${at(el)})`);

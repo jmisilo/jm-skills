@@ -49,7 +49,7 @@ Markup, in this order. `<figure>` takes no `role`.
 
 ### Hairlines
 
-Every line is 1px. The subject curve or path may be 1.5px (set by `.fig svg path.subj`).
+Every line is 1px, with two exceptions set in CSS: the subject curve or path (`.fig svg path.subj`) and drawing outlines (`.part`) are 1.5px. Never set `stroke-width` attributes.
 
 | Class (SVG) | Stroke | Use |
 | --- | --- | --- |
@@ -61,6 +61,7 @@ Every line is 1px. The subject curve or path may be 1.5px (set by `.fig svg path
 | `.ref-line` | `1 2` `--faint` | chart reference lines and event markers |
 | `.life` | `1 2` `--faint` | sequence lifelines |
 | `.ln-faint` | solid `--faint` | hatching, secondary outlines |
+| `.part` | solid `--ink`, 1.5px | object outlines in `schematic` and `panel` drawings only |
 
 Add `subj` to any of them to draw it in the accent. In ASCII, use `┄ ┆` for dashed boxes.
 
@@ -277,7 +278,8 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 
 ## schematic
 
-- SVG, viewBox at most 420 wide. Flat section or side view, `.ln` hairlines, no shading or fills. Say `not to scale` in the hint when it isn't.
+- SVG, viewBox at most 420 wide. Flat section or side view, no shading or fills. Say `not to scale` in the hint when it isn't.
+- Object outlines are `.part`: 1.5px `--ink`, so the object reads a step bolder than its notes. Annotations (leaders, dimension scales, dashed guides) stay 1px `--muted`.
 - Labels 11px caps `.lbl`: right-aligned at x 70 on the left (`text-anchor="end"`) or left-aligned from x 318 on the right, each with a `.leader` that has at most one elbow.
 - Dimensions: a `.dash` guide from the part to a `.leader` scale with ticks, values as 12px text.
 - The subject is one point or part: `.subj` stroke, `.solid.subj` dot, and its label in `subj`. 3 to 8 labels.
@@ -287,11 +289,11 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 <figure class="fig" data-kind="schematic">
   <div class="fig-head"><span class="fig-tag">FIG. 9</span><span class="fig-hint">section · not to scale</span></div>
   <svg role="img" aria-label="Section of a linear key switch: a stem rides in a two-part housing on a spring; a leg on the stem holds two contact leaves apart until the stem has travelled 2 mm of its 4 mm." width="420" height="230" viewBox="0 0 420 230">
-    <path class="ln" d="M184 160 V30 H216 V160 Z"/>
-    <path class="ln" d="M216 146 H246"/>
-    <path class="ln" d="M118 120 V84 H180 M220 84 H282 V120 M110 120 H290 V214 H110 Z"/>
-    <path class="ln" d="M200 160 L188 166 L212 172 L188 178 L212 184 L188 190 L212 196 L188 202 L212 208 L200 214"/>
-    <path class="ln" d="M258 214 V140 M248 214 V176 L252 150"/>
+    <path class="part" d="M184 160 V30 H216 V160 Z"/>
+    <path class="part" d="M216 146 H246"/>
+    <path class="part" d="M118 120 V84 H180 M220 84 H282 V120 M110 120 H290 V214 H110 Z"/>
+    <path class="part" d="M200 160 L188 166 L212 172 L188 178 L212 184 L188 190 L212 196 L188 202 L212 208 L200 214"/>
+    <path class="part" d="M258 214 V140 M248 214 V176 L252 150"/>
     <circle class="solid subj" cx="255" cy="150" r="2.5"/>
     <line class="dash" x1="216" y1="30" x2="300" y2="30"/>
     <path class="leader" d="M306 30 V110 M301 30 H311 M301 70 H311 M301 110 H311"/>
@@ -313,7 +315,7 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 The spring reference drawn in the light palette. Use it once per page at most, for the one number the reader should turn.
 
 - `.fig.wide` with `data-interactive`. The head adds a `.fig-name` (`[ spring ]`) after the tag; the hint names the gestures, set by the script, and shows the static state without it.
-- `.panel` is a two-column grid: `.panel-code` (13px, faint line numbers, keys bold `--ink`, comment `.c` `--muted`, values `.val` in the accent) and a small schematic SVG on the right, at most 200 wide. Under 480px the schematic drops under the code.
+- `.panel` is a two-column grid: `.panel-code` (13px, faint line numbers, keys bold `--ink`, comment `.c` `--muted`, values `.val` in the accent) and a small schematic SVG on the right, at most 200 wide, outlines `.part` (1.5px `--ink`) and hatching `.ln-faint`. Under 480px the schematic drops under the code.
 - `.plot` spans both columns: a stretched SVG with no text, HTML tick labels (`.y` with `--y`, `.x` with `--x` and `--tx` for the ends), a `.mark` label at the event and a `.legend`. All chart conventions apply.
 - `.fig-foot` under a dotted rule: the formula on the first line; ranges left in `--muted`; readouts right, with `data-out` spans the script fills.
 - Static first: every number, path and readout in the HTML is computed for the values shown. The script only redraws.
@@ -335,8 +337,8 @@ The spring reference drawn in the light palette. Use it once per page at most, f
     </div>
     <svg role="img" aria-label="Schematic: a mass m hangs from a fixed ceiling on a spring and a damper side by side; a dashed mark x0 shows where it comes to rest." width="170" height="176" viewBox="0 0 170 176">
       <path class="ln-faint" d="M14 12 l8 -8 M26 12 l8 -8 M38 12 l8 -8 M50 12 l8 -8 M62 12 l8 -8 M74 12 l8 -8 M86 12 l8 -8 M98 12 l8 -8 M110 12 l8 -8 M122 12 l8 -8 M134 12 l8 -8"/>
-      <path class="ln" d="M10 12 H150 M50 12 V22 L40 26 L60 34 L40 42 L60 50 L40 58 L60 66 L40 74 L60 82 L40 90 L60 98 L40 106 L60 114 L50 118 V130 M92 12 V92 M112 12 V92 M95 70 H109 M102 70 V130"/>
-      <rect class="ln" x="30" y="130" width="92" height="40" rx="2"/>
+      <path class="part" d="M10 12 H150 M50 12 V22 L40 26 L60 34 L40 42 L60 50 L40 58 L60 66 L40 74 L60 82 L40 90 L60 98 L40 106 L60 114 L50 118 V130 M92 12 V92 M112 12 V92 M95 70 H109 M102 70 V130"/>
+      <rect class="part" x="30" y="130" width="92" height="40" rx="2"/>
       <text x="76" y="154" text-anchor="middle">m</text><line class="dash" x1="128" y1="150" x2="146" y2="150"/>
       <text x="150" y="154">x₀</text>
     </svg>
