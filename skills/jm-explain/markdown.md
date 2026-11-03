@@ -6,7 +6,7 @@ Read this only when the request contains `--md`. The answer goes in the chat as 
 
 Keep the page's parts, in this order, as plain markdown:
 
-1. The prompt line as a blockquote: `> /jm-explain <request as typed>`.
+1. The prompt line as a blockquote: `> ` followed by the invocation exactly as the user typed it (`/jm-explain …` or `$jm-explain …`).
 2. The problem: a `#` heading, 2 to 4 short paragraphs, then the overview figure.
 3. `## Before you start`: a list of 2 to 6 terms, each `**term**: one or two sentences`.
 4. `## 01 <step title>` to `## 07 …`: per step, one paragraph and one figure.

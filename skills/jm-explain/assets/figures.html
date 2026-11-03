@@ -80,7 +80,7 @@ h2 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
 
 /* == inline == */
 code {
-  padding: .05em .35em;
+  padding: .05em .25em;
   border: 1px solid var(--rule);
   border-radius: 4px;
   font-family: var(--mono);
@@ -88,9 +88,11 @@ code {
 }
 dfn { font-style: normal; font-weight: 600; }
 mark { background: none; color: inherit; }
-.subj, [data-subj], .val { color: var(--accent); }
+.subj, [data-subj], .val { color: inherit; font-weight: 600; background: none; }
+.fig .subj, .fig [data-subj], .fig .val { color: var(--accent); font-weight: inherit; }
 .val { font-variant-numeric: tabular-nums; }
-.inferred { text-decoration: underline dotted 1px var(--muted); text-underline-offset: 4px; }
+.inferred { text-decoration: none; }
+.inferred::after { content: "~"; font: 10px var(--mono); color: var(--muted); vertical-align: super; margin-left: 1px; }
 .fault { color: var(--fault); }
 sup.ref { font: 10px/0 var(--mono); vertical-align: super; margin-left: 1px; }
 sup.ref a { padding: 0 1px; color: var(--ink-2); text-decoration: none; }

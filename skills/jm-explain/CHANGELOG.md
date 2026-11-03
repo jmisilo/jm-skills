@@ -25,9 +25,9 @@ Baseline: Opus at high effort, no skill, three synthetic tasks (DNS, keyboard sw
 - F3 Figures in filled cards → the checker FAILs on figure background or border; house rules row 3.
 - F4 Left-border callouts → the checker FAILs on `blockquote`/`aside` and thick left borders; house rules row 4.
 - F5 Only hand-placed SVG → the ASCII, timeline and table kinds in figures.md; house rules row 9.
-- F6 Overlapping lines and labels left in → the probe and steps 6 and 7.
+- F6 Overlapping lines and labels left in → the probe and the check and probe steps (now steps 7 and 8).
 - F7 No problem definition → the `problem` part with its overview figure; writing rule 1.
-- F8 Too long, with side topics → scope in step 1; the 4 to 7 step and 2,500 word WARNs; house rules row 10.
+- F8 Too long, with side topics → scope in step 1; the 4 to 7 step WARN and a word WARN (first 2,500, later 1,600); house rules row 10.
 - F9 No sources, and inferred claims not marked → the evidence list in step 2; `.inferred`; the checker FAILs on refs and sources.
 - F10 TL;DR box and a glossary at the end → the primer part; house rules rows 5 and 6.
 - F11 Several hues as category tags → one accent; house rules row 7.
@@ -36,3 +36,15 @@ Plan review: 3 rounds with a product designer, an engineer and a product manager
 - The designer pinned tokens, type and chart conventions, the `panel` kind, non-scaling strokes and the `bigText`/`smallText` probe gates.
 - The engineer made the probe and checker runnable without false FAILs: the IIFE probe, measuring font size × CTM, the exact token-set check, figure body rules and the `svg.ah` exemption.
 - The PM asked for Codex support, the overview figure, the newcomer check, examples and a process-domain test.
+
+## 2026-11-03 (after the behaviour tests)
+
+Behaviour runs: three fresh Opus agents used the skill on DNS, keyboard switch and card payment, plus a `--md` run on git commits and a Linear sidebar question. Each page passed the checker and the probe. Judges then found the failures below, and each line answers one:
+- **Pairwise visual review (L4).** The steps lead-in rendered grey because its selector missed the markup. A whole clause carried the accent. The uppercase chrome style turned `m·ẍ` into `M·Ẍ` and `IPv4` into `IPV4`. Fixed in the template and figures; Gotchas gained "identifiers keep their case".
+- **Accent everywhere in prose.** Two pages put the accent on 7 to 9 values per page, and the template did the same. This led to the `accent-prose` checker WARN, the "one accent mark per section of prose" writing rule and a house-rules row. Agents kept wrapping numbers away from their units, which led to the `&nbsp;` rule.
+- **explain-interface can't be loaded.** It is user-only, so an agent's Skill call is refused. Step 1 now carries its research rules inline and points the user to `/explain-interface`.
+- **Repeated full-page capture.** At 390 wide the full-page screenshot repeated the top of the page for two agents. A gotcha now says to take single-viewport shots instead.
+- **Newcomer read (L10).** Jargon leaked on all three pages, including labels in the overview figure, which comes before the primer: `port`, `RFC`, `cN`, `0x04`, `EMV`, `DE 11`. This added step 6, the Newcomer pass, and a house-rules row.
+- **Before/after judge (L6).** Two pages ran longer than their baselines. This added the length budget (900 to 1,400 words, 4 or 5 steps) and lowered the word WARN to 1,600. Box labels touched their edges, which led to the box padding rule and a box-edge check in step 8. Claims after a ref went untagged, which led to "a ref covers only the sentence it ends". The finish and limits were untagged too, so the tagging rule now covers them.
+
+Not verified: the Codex run (`codex exec '$jm-explain …'`). The user declined the sandboxed test run, so `agents/openai.yaml` is untested in Codex.
