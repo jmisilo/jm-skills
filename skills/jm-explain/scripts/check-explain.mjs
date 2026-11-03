@@ -53,6 +53,7 @@ const RULES = {
   "fig-control": ["FAIL", "label the control with aria-label, a <label> or visible button text"],
   "fig-interactive": ["FAIL", "keep at most one data-interactive figure per page"],
   "ascii-width": ["FAIL", "redraw the ascii figure within 56 columns (svg.ah counts as 1)"],
+  "ascii-pre": ["WARN", "render ascii and tree figures with scripts/ascii-figure.mjs; box-drawing glyphs in a pre never join"],
   "svg-size": ["WARN", "set the body svg width to its viewBox width (with max-width:100%) so it never scales up"],
   // refs and sources (R5)
   "ref-unresolved": ["FAIL", "point every <sup class=\"ref\"><a href=\"#sN\"> at an <li id=\"sN\"> in the sources part"],
@@ -746,6 +747,17 @@ for (const pre of all.filter((e) => e.tag === "pre" && closest(e.parent, (a) => 
     for (const ch of line) cols = ch === "\t" ? cols + 8 - (cols % 8) : cols + 1;
     if (cols > 56) report("ascii-width", `${figName} line ${k + 1} is ${cols} columns (max 56) (line ${lineOf(pre.start) + k})`);
   });
+}
+
+// box-drawing text in a figure pre (R4): draw it with scripts/ascii-figure.mjs instead
+for (const pre of all.filter((e) => e.tag === "pre" && closest(e.parent, (a) => a.tag === "figure" && a.cls.has("fig")))) {
+  const t = textOf(pre);
+  const hit = /[\u2500-\u257f\u25b8\u25c2\u25b4\u25be\u25b6\u25c0]/u.exec(t)
+    || (elements(pre, (e) => e.tag === "svg" && e.cls.has("ah")).length ? ["svg.ah"] : null);
+  if (hit) {
+    const fig = closest(pre, (e) => e.tag === "figure");
+    report("ascii-pre", `FIG ${figures.indexOf(fig) + 1} <pre> holds "${hit[0]}" (${at(pre)})`);
+  }
 }
 
 // refs and sources (R5)

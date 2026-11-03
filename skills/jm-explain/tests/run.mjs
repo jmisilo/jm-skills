@@ -38,7 +38,7 @@ const CASES = {
     gallery: true,
     fail: ["fig-class", "fig-kind", "fig-tag", "fig-order", "fig-caption", "fig-role", "fig-body", "fig-control",
       "fig-interactive", "ascii-width"],
-    warn: ["svg-size"],
+    warn: ["svg-size", "ascii-pre"],
   },
   "broken-refs.html": { fail: ["ref-unresolved", "sources-count"], warn: [] },
   "broken-external.html": { gallery: true, fail: ["external-load"], warn: ["external-link"] },

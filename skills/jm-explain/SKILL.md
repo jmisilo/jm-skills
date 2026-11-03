@@ -29,7 +29,7 @@ The user's explicit wishes in the request override this skill. The format rules 
    - the finish: the whole mechanism as one idea, what transfers to other systems, and the limits of this explanation.
    Then check that no step uses a term defined only later. Read [markdown.md](markdown.md) when the request contains `--md`, and follow it instead of steps 4 to 8.
 4. **Pick figures.** Read [figures.md](figures.md) when you reach this step, on every HTML page. One figure per step plus the overview, each one a kind from its table, 3 to 8 elements each. A quantity that varies continuously (force over travel, a value over time, a curve that settles) is a `chart`, or a `panel` when its parameters are the point; never a table of samples. The first time you build a page in a session, also read one file in `examples/` for the finished density and voice.
-5. **Build.** Run `mkdir -p explain`, copy `${CLAUDE_SKILL_DIR}/assets/template.html` to `./explain/<slug>.html` (lowercase, hyphens, 2 to 5 words), and replace the demo content part by part. Keep the `:root` tokens and the base CSS unchanged, because the checker compares them with the template. Figure CSS you add goes below the `/* == figures == */` block and uses only `var(--*)` colours.
+5. **Build.** Run `mkdir -p explain`, copy `${CLAUDE_SKILL_DIR}/assets/template.html` to `./explain/<slug>.html` (lowercase, hyphens, 2 to 5 words), and replace the demo content part by part. Keep the `:root` tokens and the base CSS unchanged, because the checker compares them with the template. Figure CSS you add goes below the `/* == figures == */` block and uses only `var(--*)` colours. Render every ascii and tree figure with `node ${CLAUDE_SKILL_DIR}/scripts/ascii-figure.mjs --label "<what it shows>" <file.txt>` and paste its SVG as the body.
 6. **Newcomer pass.** Read the built page top to bottom as someone who has never met the field, including figure labels, captions and table headers. List every term, acronym, unit and notation (`port`, `RFC`, `cN`, `0x04`, `DE 11`) at its first appearance. Each one must be in the primer, explained in plain words in the same sentence (`a port, the numbered door a service listens on`), or replaced by a plain word. The overview figure comes before the primer, so its labels use plain words only. Fix the page until the list is empty.
 7. **Check.** Run `node ${CLAUDE_SKILL_DIR}/scripts/check-explain.mjs explain/<slug>.html`. Fix every FAIL. Treat each WARN as wrong unless you can defend it in one sentence in the final reply.
 8. **Render and probe**, with the recipe below, at 1280 and 390 wide. Open both screenshots and look at them: figure labels legible, nothing colliding, no label touching its box edge, accent only on the subject. Fix the largest problem first, in one batch, then rerun steps 7 and 8. Stop when the checker has no FAIL and the probe returns `"ok": true` at both widths, or after 3 rounds, and report what is left.
@@ -99,7 +99,7 @@ These are the defaults agents produce without this skill, each with what to do i
 
 ## Gotchas
 
-- `▶` and some box-drawing glyphs fall back to another font and break the grid. Arrowheads in ASCII figures are the `svg.ah` element from figures.md.
+- Box-drawing glyphs in a `<pre>` never join: they don't fill the line height, so vertical lines break between rows and arrowheads sit off the line. Write ascii and tree figures as text and render them with `node ${CLAUDE_SKILL_DIR}/scripts/ascii-figure.mjs`.
 - An open SVG `path` or `polyline` without `fill="none"` closes into a black shape.
 - An SVG drawn small and shown large inflates its labels and strokes. Give each figure SVG a `width` equal to its viewBox width; the probe's `bigText` catches misses.
 - A viewBox wider than about 430 shrinks 11px labels under 9px at 390 wide. Narrow the drawing, move labels to HTML, or add a stacked variant (figures.md).
@@ -118,6 +118,7 @@ These are the defaults agents produce without this skill, each with what to do i
 | `examples/keyboard-switch-to-usb.html` or `examples/card-payment-tap-to-payout.html` | Read one | The first page you build in a session: hardware topics the first, processes and systems the second |
 | `assets/template.html` | Copy | Step 5 |
 | `assets/figures.html` | Open in a browser | When a figure kind's snippet in figures.md is unclear |
+| `node scripts/ascii-figure.mjs` | Run | Step 5, for every ascii and tree figure |
 | `node scripts/check-explain.mjs` | Run | Step 7 |
 | `agent-browser … eval --stdin < scripts/probe.js` | Run through the recipe | Step 8 |
 

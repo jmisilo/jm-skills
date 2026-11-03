@@ -56,6 +56,14 @@ code { font: .9em var(--mono); border: 1px solid var(--rule); border-radius: 4px
 figcaption { margin-top: 16px; border-top: 1px dotted var(--rule); padding-top: 10px; font: 13px/1.5 var(--sans); color: var(--ink-2); }
 .fig-src { display: block; margin-top: 4px; }
 ol.sources { font-size: 13px; color: var(--ink-2); }
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
 </style>
 </head>
 <body>
@@ -98,10 +106,20 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
     <p>The client sends one query to its resolver and waits.<sup class="ref"><a href="#s1">1</a></sup></p>
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 2</span></div>
-      <div class="ascii" role="img" aria-label="Client sends one query to the resolver" style="--cols:25"><pre aria-hidden="true">
-┌────────┐    ┌──────────┐
-│ client │───<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│ resolver │
-└────────┘    └──────────┘</pre></div>
+      <svg class="grid" role="img" aria-label="Client sends one query to the resolver" viewBox="0 0 218.4 50.4" width="218.4" height="50.4">
+<path class="ln" d="M4.2 8.4H79.8"/>
+<path class="ln" d="M121.8 8.4H214.2"/>
+<path class="ln" d="M84 25.2H113.4"/>
+<path class="ln" d="M4.2 42H79.8"/>
+<path class="ln" d="M121.8 42H214.2"/>
+<path class="ln" d="M4.2 8.4V42"/>
+<path class="ln" d="M79.8 8.4V42"/>
+<path class="ln" d="M121.8 8.4V42"/>
+<path class="ln" d="M214.2 8.4V42"/>
+<path class="hd" d="M117.2 25.2 L111.6 22 L111.6 28.4 Z"/>
+<text class="tx" x="16.8" y="25.2" textLength="50.4">client</text>
+<text class="tx" x="134.4" y="25.2" textLength="67.2">resolver</text>
+</svg>
       <figcaption>A single round trip from the client's side.</figcaption>
     </figure>
   </section>
@@ -111,10 +129,15 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
     <p>The resolver asks a root server, which answers with the servers for <code>.com</code>.</p>
     <figure class="fig" data-kind="tree">
       <div class="fig-head"><span class="fig-tag">FIG. 3</span></div>
-      <div class="ascii" role="img" aria-label="Tree: root, then com, then example.com" style="--cols:20"><pre aria-hidden="true">
-.
-└─ com
-   └─ example.com</pre></div>
+      <svg class="grid" role="img" aria-label="Tree: root, then com, then example.com" viewBox="0 0 142.8 50.4" width="142.8" height="50.4">
+<path class="ln" d="M4.2 25.2H16.8"/>
+<path class="ln" d="M29.4 42H42"/>
+<path class="ln" d="M4.2 16.8V25.2"/>
+<path class="ln" d="M29.4 33.6V42"/>
+<text class="tx" x="0" y="8.4" textLength="8.4">.</text>
+<text class="tx" x="25.2" y="25.2" textLength="25.2">com</text>
+<text class="tx" x="50.4" y="42" textLength="92.4">example.com</text>
+</svg>
       <figcaption>Each level knows only the next one down.</figcaption>
     </figure>
   </section>

@@ -306,6 +306,15 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
   .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
   .fig th, .fig td { padding-inline: 6px; }
 }
+
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
 </style>
 </head>
 <body>
@@ -343,12 +352,52 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">one load · typical latencies</span></div>
-      <div class="ascii" role="img" aria-label="A load misses L1d (5 cycles) and L2 (14 cycles), hits L3 (about 50 cycles) and never reaches DRAM (about 100ns)." style="--cols:50"><pre aria-hidden="true"> load                              not reached
-┌──────┐ miss ┌──────┐ miss ┌──────┐      ┌┄┄┄┄┄┄┐
-│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
-│ 48K  │      │  2M  │      │ 36M  │      ┆ 32G  ┆
-└──────┘      └──────┘      └──────┘      └┄┄┄┄┄┄┘
- 5 cyc         14 cyc       <span class="subj">~50 cyc hit</span>    ~100 ns</pre></div>
+      <svg class="grid" role="img" aria-label="A load misses L1d (5 cycles) and L2 (14 cycles), hits L3 (about 50 cycles) and never reaches DRAM (about 100ns)." viewBox="0 0 420 100.8" width="420" height="100.8">
+<path class="ln" d="M4.2 25.2H63"/>
+<path class="ln" d="M121.8 25.2H180.6"/>
+<path class="ln" d="M239.4 25.2H298.2"/>
+<path class="ln" d="M357 25.2H361.2"/>
+<path class="ln" d="M411.6 25.2H415.8"/>
+<path class="ln dash" d="M361.2 25.2H411.6"/>
+<path class="ln" d="M67.2 42H113.4"/>
+<path class="ln" d="M184.8 42H231"/>
+<path class="ln" d="M4.2 75.6H63"/>
+<path class="ln" d="M121.8 75.6H180.6"/>
+<path class="ln" d="M239.4 75.6H298.2"/>
+<path class="ln" d="M357 75.6H361.2"/>
+<path class="ln" d="M411.6 75.6H415.8"/>
+<path class="ln dash" d="M361.2 75.6H411.6"/>
+<path class="ln" d="M4.2 25.2V75.6"/>
+<path class="ln" d="M63 25.2V75.6"/>
+<path class="ln" d="M121.8 25.2V75.6"/>
+<path class="ln" d="M180.6 25.2V75.6"/>
+<path class="ln" d="M239.4 25.2V75.6"/>
+<path class="ln" d="M298.2 25.2V75.6"/>
+<path class="ln" d="M357 25.2V33.6"/>
+<path class="ln" d="M357 67.2V75.6"/>
+<path class="ln dash" d="M357 33.6V67.2"/>
+<path class="ln" d="M415.8 25.2V33.6"/>
+<path class="ln" d="M415.8 67.2V75.6"/>
+<path class="ln dash" d="M415.8 33.6V67.2"/>
+<path class="hd" d="M117.2 42 L111.6 38.8 L111.6 45.2 Z"/>
+<path class="hd" d="M234.8 42 L229.2 38.8 L229.2 45.2 Z"/>
+<text class="tx" x="8.4" y="8.4" textLength="33.6">load</text>
+<text class="tx" x="294" y="8.4" textLength="92.4">not reached</text>
+<text class="tx" x="75.6" y="25.2" textLength="33.6">miss</text>
+<text class="tx" x="193.2" y="25.2" textLength="33.6">miss</text>
+<text class="tx" x="16.8" y="42" textLength="25.2">L1d</text>
+<text class="tx" x="142.8" y="42" textLength="16.8">L2</text>
+<text class="tx subj" x="260.4" y="42" textLength="16.8">L3</text>
+<text class="tx" x="369.6" y="42" textLength="33.6">DRAM</text>
+<text class="tx" x="16.8" y="58.8" textLength="25.2">48K</text>
+<text class="tx" x="142.8" y="58.8" textLength="16.8">2M</text>
+<text class="tx" x="252" y="58.8" textLength="25.2">36M</text>
+<text class="tx" x="369.6" y="58.8" textLength="25.2">32G</text>
+<text class="tx" x="8.4" y="92.4" textLength="42">5 cyc</text>
+<text class="tx" x="126" y="92.4" textLength="50.4">14 cyc</text>
+<text class="tx subj" x="235.2" y="92.4" textLength="92.4">~50 cyc hit</text>
+<text class="tx" x="361.2" y="92.4" textLength="58.8">~100 ns</text>
+</svg>
       <figcaption>The load stops at the first level that has the line. Each level down is larger and several times slower.<span class="fig-src">Source: illustrative, typical recent x86 core</span></figcaption>
     </figure>
   </section>
@@ -359,14 +408,32 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="tree">
       <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">url parts</span></div>
-      <div class="ascii" role="img" aria-label="The URL https://api.example.com:8443/v1/users?id=7#top splits into scheme, authority (host and port), path, query and fragment. The fragment is never sent to the server." style="--cols:46"><pre aria-hidden="true">https://api.example.com:8443/v1/users?id=7#top
-├─ scheme      https
-├─ authority
-│  ├─ host     api.example.com
-│  └─ port     8443
-├─ path        /v1/users
-├─ query       id=7
-└─ <span class="subj">fragment    top</span>   never sent</pre></div>
+      <svg class="grid" role="img" aria-label="The URL https://api.example.com:8443/v1/users?id=7#top splits into scheme, authority (host and port), path, query and fragment. The fragment is never sent to the server." viewBox="0 0 386.4 134.4" width="386.4" height="134.4">
+<path class="ln" d="M4.2 25.2H16.8"/>
+<path class="ln" d="M4.2 42H16.8"/>
+<path class="ln" d="M29.4 58.8H42"/>
+<path class="ln" d="M29.4 75.6H42"/>
+<path class="ln" d="M4.2 92.4H16.8"/>
+<path class="ln" d="M4.2 109.2H16.8"/>
+<path class="ln" d="M4.2 126H16.8"/>
+<path class="ln" d="M4.2 16.8V126"/>
+<path class="ln" d="M29.4 50.4V75.6"/>
+<text class="tx" x="0" y="8.4" textLength="386.4">https://api.example.com:8443/v1/users?id=7#top</text>
+<text class="tx" x="25.2" y="25.2" textLength="50.4">scheme</text>
+<text class="tx" x="126" y="25.2" textLength="42">https</text>
+<text class="tx" x="25.2" y="42" textLength="75.6">authority</text>
+<text class="tx" x="50.4" y="58.8" textLength="33.6">host</text>
+<text class="tx" x="126" y="58.8" textLength="126">api.example.com</text>
+<text class="tx" x="50.4" y="75.6" textLength="33.6">port</text>
+<text class="tx" x="126" y="75.6" textLength="33.6">8443</text>
+<text class="tx" x="25.2" y="92.4" textLength="33.6">path</text>
+<text class="tx" x="126" y="92.4" textLength="75.6">/v1/users</text>
+<text class="tx" x="25.2" y="109.2" textLength="42">query</text>
+<text class="tx" x="126" y="109.2" textLength="33.6">id=7</text>
+<text class="tx subj" x="25.2" y="126" textLength="67.2">fragment</text>
+<text class="tx subj" x="126" y="126" textLength="25.2">top</text>
+<text class="tx" x="176.4" y="126" textLength="84">never sent</text>
+</svg>
       <figcaption>Everything up to the query goes to the server. The fragment stays in the browser.<span class="fig-src">Source: RFC 3986, section 3</span></figcaption>
     </figure>
   </section>

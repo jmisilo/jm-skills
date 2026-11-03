@@ -309,6 +309,15 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
   .stack > div { grid-template-columns: 8ch 1fr auto; gap: 12px; padding-inline: 8px; }
   .fig th, .fig td { padding-inline: 6px; }
 }
+
+/* grid figures: scripts/ascii-figure.mjs draws box-drawing diagrams as SVG on an exact character grid */
+.fig svg.grid { display: block; margin: 0 auto; max-width: 100%; height: auto; overflow: visible; }
+.fig svg.grid .ln { fill: none; stroke: var(--ink-2); stroke-width: 1; stroke-linecap: square; vector-effect: non-scaling-stroke; }
+.fig svg.grid .ln.dash { stroke-dasharray: 2 3; stroke-linecap: butt; }
+.fig svg.grid .hd { fill: var(--ink-2); stroke: none; }
+.fig svg.grid .tx { font-family: var(--mono); font-size: 14px; fill: var(--ink-2); dominant-baseline: central; font-variant-numeric: tabular-nums; }
+.fig svg.grid .ln.subj { stroke: var(--accent); }
+.fig svg.grid .hd.subj, .fig svg.grid .tx.subj { fill: var(--accent); }
 </style>
 </head>
 <body>
@@ -364,10 +373,22 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="tree">
       <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">component tree</span></div>
-      <div class="ascii" role="img" aria-label="Tree: AnimatePresence with mode popLayout and initial false wraps one m.span keyed on state; the state is idle for the copy icon or active for the checkmark." style="--cols:50"><pre aria-hidden="true">AnimatePresence  mode="popLayout"  initial={false}
-└─ m.span  <span class="subj">key={state}</span>
-   ├─ "idle"    copy icon
-   └─ "active"  checkmark</pre></div>
+      <svg class="grid" role="img" aria-label="Tree: AnimatePresence with mode popLayout and initial false wraps one m.span keyed on state; the state is idle for the copy icon or active for the checkmark." viewBox="0 0 420 67.2" width="420" height="67.2">
+<path class="ln" d="M4.2 25.2H16.8"/>
+<path class="ln" d="M29.4 42H42"/>
+<path class="ln" d="M29.4 58.8H42"/>
+<path class="ln" d="M4.2 16.8V25.2"/>
+<path class="ln" d="M29.4 33.6V58.8"/>
+<text class="tx" x="0" y="8.4" textLength="126">AnimatePresence</text>
+<text class="tx" x="142.8" y="8.4" textLength="134.4">mode=&quot;popLayout&quot;</text>
+<text class="tx" x="294" y="8.4" textLength="126">initial={false}</text>
+<text class="tx" x="25.2" y="25.2" textLength="50.4">m.span</text>
+<text class="tx subj" x="92.4" y="25.2" textLength="92.4">key={state}</text>
+<text class="tx" x="50.4" y="42" textLength="50.4">&quot;idle&quot;</text>
+<text class="tx" x="134.4" y="42" textLength="75.6">copy icon</text>
+<text class="tx" x="50.4" y="58.8" textLength="67.2">&quot;active&quot;</text>
+<text class="tx" x="134.4" y="58.8" textLength="75.6">checkmark</text>
+</svg>
       <figcaption>One child whose key is the state. A new key means a new element, and that gives <code>AnimatePresence</code> something to animate out.<span class="fig-src">Source: Motion docs, AnimatePresence</span></figcaption>
     </figure>
   </section>
@@ -378,12 +399,30 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">exit and enter values</span></div>
-      <div class="ascii" role="img" aria-label="Exit takes opacity from 1 to 0, scale from 1 to 0.25 and blur from 0 to 4px. Enter runs the same values the other way." style="--cols:48"><pre aria-hidden="true"> exit                       enter
-┌───────────────────┐      ┌───────────────────┐
-│ opacity 1 → 0     │      │ opacity 0 → 1     │
-│ scale   1 → 0.25  │ ───<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg> │ scale   0.25 → 1  │
-│ blur    0px → 4px │      │ blur    4px → 0px │
-└───────────────────┘      └───────────────────┘</pre></div>
+      <svg class="grid" role="img" aria-label="Exit takes opacity from 1 to 0, scale from 1 to 0.25 and blur from 0 to 4px. Enter runs the same values the other way." viewBox="0 0 403.2 100.8" width="403.2" height="100.8">
+<path class="ln" d="M4.2 25.2H172.2"/>
+<path class="ln" d="M231 25.2H399"/>
+<path class="ln" d="M184.8 58.8H214.2"/>
+<path class="ln" d="M4.2 92.4H172.2"/>
+<path class="ln" d="M231 92.4H399"/>
+<path class="ln" d="M4.2 25.2V92.4"/>
+<path class="ln" d="M172.2 25.2V92.4"/>
+<path class="ln" d="M231 25.2V92.4"/>
+<path class="ln" d="M399 25.2V92.4"/>
+<path class="hd" d="M218 58.8 L212.4 55.6 L212.4 62 Z"/>
+<text class="tx" x="8.4" y="8.4" textLength="33.6">exit</text>
+<text class="tx" x="235.2" y="8.4" textLength="42">enter</text>
+<text class="tx" x="16.8" y="42" textLength="109.2">opacity 1 → 0</text>
+<text class="tx" x="243.6" y="42" textLength="109.2">opacity 0 → 1</text>
+<text class="tx" x="16.8" y="58.8" textLength="42">scale</text>
+<text class="tx" x="84" y="58.8" textLength="67.2">1 → 0.25</text>
+<text class="tx" x="243.6" y="58.8" textLength="42">scale</text>
+<text class="tx" x="310.8" y="58.8" textLength="67.2">0.25 → 1</text>
+<text class="tx" x="16.8" y="75.6" textLength="33.6">blur</text>
+<text class="tx" x="84" y="75.6" textLength="75.6">0px → 4px</text>
+<text class="tx" x="243.6" y="75.6" textLength="33.6">blur</text>
+<text class="tx" x="310.8" y="75.6" textLength="75.6">4px → 0px</text>
+</svg>
       <figcaption>Enter starts from the values exit ends on. In this button the two run at the same time, not one after the other.<span class="fig-src">Source: interfaces.dev, Copy Page button</span></figcaption>
     </figure>
   </section>
@@ -394,13 +433,26 @@ ol.sources > li:target > span:first-child a { text-decoration-color: var(--ink);
 
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 4</span><span class="fig-hint">mid-swap, at 150ms</span></div>
-      <div class="ascii" role="img" aria-label="Mid-swap in sync mode the button holds two slots, copy and check, and widens. In popLayout mode it holds one slot, check, and copy is popped out and fades on top of it." style="--cols:51"><pre aria-hidden="true">            ┌──────┬───────┐
-sync        │ copy │ check │  two icons, two slots:
-            └──────┴───────┘  the button widens
-
-            ┌───────┐
-<span class="subj">popLayout</span>   │ check │  copy is popped out of flow
-            └───────┘  and fades on top of check</pre></div>
+      <svg class="grid" role="img" aria-label="Mid-swap in sync mode the button holds two slots, copy and check, and widens. In popLayout mode it holds one slot, check, and copy is popped out and fades on top of it." viewBox="0 0 428.4 117.6" width="428.4" height="117.6">
+<path class="ln" d="M105 8.4H231"/>
+<path class="ln" d="M105 42H231"/>
+<path class="ln" d="M105 75.6H172.2"/>
+<path class="ln" d="M105 109.2H172.2"/>
+<path class="ln" d="M105 8.4V42"/>
+<path class="ln" d="M105 75.6V109.2"/>
+<path class="ln" d="M163.8 8.4V42"/>
+<path class="ln" d="M172.2 75.6V109.2"/>
+<path class="ln" d="M231 8.4V42"/>
+<text class="tx" x="0" y="25.2" textLength="33.6">sync</text>
+<text class="tx" x="117.6" y="25.2" textLength="33.6">copy</text>
+<text class="tx" x="176.4" y="25.2" textLength="42">check</text>
+<text class="tx" x="252" y="25.2" textLength="176.4">two icons, two slots:</text>
+<text class="tx" x="252" y="42" textLength="142.8">the button widens</text>
+<text class="tx subj" x="0" y="92.4" textLength="75.6">popLayout</text>
+<text class="tx" x="117.6" y="92.4" textLength="42">check</text>
+<text class="tx" x="193.2" y="92.4" textLength="218.4">copy is popped out of flow</text>
+<text class="tx" x="193.2" y="109.2" textLength="210">and fades on top of check</text>
+</svg>
       <figcaption>Same moment, two modes. With <code>popLayout</code> the button never changes size.<span class="fig-src">Source: Motion docs, AnimatePresence, mode</span></figcaption>
     </figure>
   </section>

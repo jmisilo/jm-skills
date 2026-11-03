@@ -39,7 +39,7 @@ Markup, in this order. `<figure>` takes no `role`.
 ```
 
 - `.fig-tag` reads exactly `FIG. n`, numbered 1..N in page order. The hint names conditions or units (`cold cache · time runs down`).
-- One body: `<svg role="img" aria-label>`, `<div class="ascii" role="img" aria-label><pre aria-hidden="true">`, a div grid with `role="img" aria-label` (timeline, units, stack), or a `<table>` (table kind). The `aria-label` states what the figure shows in a sentence, numbers included.
+- One body: `<svg role="img" aria-label>` (hand-drawn, or `svg.grid` from `scripts/ascii-figure.mjs` for ascii and tree), a div grid with `role="img" aria-label` (timeline, units, stack), or a `<table>` (table kind). The `aria-label` states what the figure shows in a sentence, numbers included.
 - Default width is `--measure` (620px). Add `wide` (880px) only for the panel or a timeline with many ticks.
 - No border, background, shadow, radius or card on the figure. It sits on the paper.
 - Accent only through `.subj`, `[data-subj]` or `.val`, and only on the one thing the paragraph is about. `.fault` (red) only for a real failure.
@@ -108,45 +108,49 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 
 ## ascii
 
-- `<pre>` inside `.ascii`, line-height 1.2, `--ink-2`, no padding, `user-select: none`. Box drawing only: `┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴`, dashed `┄ ┆`.
-- **Size**: set `--cols` to the widest line, in characters. The CSS does `font-size: min(1em, calc(100cqw / (var(--cols) * 0.62)))` on a 14px base, so the widest line always fits and type never exceeds 14px.
-- **At most 56 columns**: at 350px that still gives 10px type.
-- **Arrowheads** are a 1ch inline SVG after a run of `─`, counted as 1 column. It fills exactly one line box (`height:1.2em; vertical-align:top`), so the row height never changes and the tip sits on the line's centre, where `─` is drawn; it carries its own short shaft, so the run never shows a gap. Right: `<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>`. Left: `d="M6 5.6H4V6.4H6Z M4.5 2.8L0 6L4.5 9.2Z"`. Down, under a `│`: `d="M2.6 0H3.4V7H2.6Z M0.6 6H5.4L3 10.5Z"`. Never use `vertical-align` offsets or a 1em height: the tip drops below the line and taller rows break vertical `│` runs.
-- Labels above arrows, values inside boxes, totals or latencies on the line under the boxes. Mark the subject with `<span class="subj">`.
+Write the diagram as plain box-drawing text and render it with the bundled script. Never put box-drawing characters in a `<pre>`: font glyphs don't fill the line height, so vertical lines break between rows, and arrowheads never sit on the line.
 
-```html
-<figure class="fig" data-kind="ascii">
-  <div class="fig-head"><span class="fig-tag">FIG. 2</span><span class="fig-hint">one load · typical latencies</span></div>
-  <div class="ascii" role="img" aria-label="A load misses L1d (5 cycles) and L2 (14 cycles), hits L3 (about 50 cycles) and never reaches DRAM (about 100ns)." style="--cols:50"><pre aria-hidden="true"> load                              not reached
+```bash
+node ${CLAUDE_SKILL_DIR}/scripts/ascii-figure.mjs --label "What the figure shows, numbers included" diagram.txt
+```
+
+The script prints one `<svg class="grid" role="img" aria-label="…">`; paste it as the figure body. Every line, corner, junction and arrowhead becomes an SVG path on an exact character grid (8.4 × 16.8px cells), and text is fitted to the same grid, so joins are exact in any font and at any zoom. It exits non-zero, saying what to fix, on a line over 56 columns or a missing `--label`.
+
+- **Lines:** `─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼` (and rounded `╭ ╮ ╰ ╯`); dashed `┄ ┆` for estimates, not-reached parts and the money path.
+- **Arrowheads:** one character at the end of a line: `▸ ◂ ▴ ▾` (or `→ ← ↑ ↓`). The script draws the shaft into the tip, dashed when the line before it is dashed.
+- **Subject:** wrap it in `⟦ ⟧`; its text and lines turn accent. The markers take no columns.
+- **Size:** at most 56 columns, so labels stay at 10px or more on a 390px screen. The SVG is drawn at its real size and never scales up.
+- Labels above arrows, values inside boxes with 1 space to each edge, totals or latencies on the line under the boxes. Leave one space between an arrowhead and the box it points at.
+
+```text
+ load                              not reached
 ┌──────┐ miss ┌──────┐ miss ┌──────┐      ┌┄┄┄┄┄┄┐
-│ L1d  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  L2  │─────<svg class="ah" aria-hidden="true" viewBox="0 0 6 12" preserveAspectRatio="none" style="width:1ch;height:1.2em;vertical-align:top"><path d="M0 5.6H2V6.4H0Z M1.5 2.8L6 6L1.5 9.2Z" fill="currentColor"/></svg>│  <span class="subj">L3</span>  │      ┆ DRAM ┆
+│ L1d  │─────▸│  L2  │─────▸│  ⟦L3⟧  │      ┆ DRAM ┆
 │ 48K  │      │  2M  │      │ 36M  │      ┆ 32G  ┆
 └──────┘      └──────┘      └──────┘      └┄┄┄┄┄┄┘
- 5 cyc         14 cyc       <span class="subj">~50 cyc hit</span>    ~100 ns</pre></div>
-  <figcaption>The load stops at the first level that has the line. Each level down is larger and several times slower.<span class="fig-src">Source: illustrative, typical recent x86 core</span></figcaption>
-</figure>
+ 5 cyc         14 cyc       ⟦~50 cyc hit⟧    ~100 ns
 ```
+
+The rendered result is FIG. 2 in `assets/figures.html`.
 
 ## tree
 
-- The ascii body with `├─`, `└─` and `│` continuation, 3 spaces per level. The root line is the real thing (a path, a URL, a component).
+- The same script, with `├─`, `└─` and `│` continuation, 3 columns per level. The root line is the real thing (a path, a URL, a component).
 - Align the value column with spaces. One trailing note at most (`never sent`).
-- The subject branch in `<span class="subj">`. Up to 4 levels, 4 to 10 lines.
+- The subject branch in `⟦ ⟧`. Up to 4 levels, 4 to 10 lines.
 
-```html
-<figure class="fig" data-kind="tree">
-  <div class="fig-head"><span class="fig-tag">FIG. 3</span><span class="fig-hint">url parts</span></div>
-  <div class="ascii" role="img" aria-label="The URL https://api.example.com:8443/v1/users?id=7#top splits into scheme, authority (host and port), path, query and fragment. The fragment is never sent to the server." style="--cols:46"><pre aria-hidden="true">https://api.example.com:8443/v1/users?id=7#top
+```text
+https://api.example.com:8443/v1/users?id=7#top
 ├─ scheme      https
 ├─ authority
 │  ├─ host     api.example.com
 │  └─ port     8443
 ├─ path        /v1/users
 ├─ query       id=7
-└─ <span class="subj">fragment    top</span>   never sent</pre></div>
-  <figcaption>Everything up to the query goes to the server. The fragment stays in the browser.<span class="fig-src">Source: RFC 3986, section 3</span></figcaption>
-</figure>
+└─ ⟦fragment    top⟧   never sent
 ```
+
+The rendered result is FIG. 3 in `assets/figures.html`.
 
 ## stack
 
