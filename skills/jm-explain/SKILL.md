@@ -115,7 +115,7 @@ These are the defaults agents produce without this skill, each with what to do i
 | --- | --- | --- |
 | [figures.md](figures.md) | Read | Step 4, for every HTML page |
 | [markdown.md](markdown.md) | Read | Only when the request contains `--md` |
-| `examples/` | Read one file | The first page you build in a session |
+| `examples/keyboard-switch-to-usb.html` or `examples/card-payment-tap-to-payout.html` | Read one | The first page you build in a session: hardware topics the first, processes and systems the second |
 | `assets/template.html` | Copy | Step 5 |
 | `assets/figures.html` | Open in a browser | When a figure kind's snippet in figures.md is unclear |
 | `node scripts/check-explain.mjs` | Run | Step 7 |

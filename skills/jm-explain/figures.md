@@ -49,7 +49,7 @@ Markup, in this order. `<figure>` takes no `role`.
 
 ### Hairlines
 
-Every line is 1px, with two exceptions set in CSS: the subject curve or path (`.fig svg path.subj`) and drawing outlines (`.part`) are 1.5px. Never set `stroke-width` attributes.
+Every line is 1px, with two exceptions set in CSS: the subject curve or path (`.fig svg path.subj`) is 1.5px, and drawing outlines (`.part`) are 1.25px. Never set `stroke-width` attributes.
 
 | Class (SVG) | Stroke | Use |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ Every line is 1px, with two exceptions set in CSS: the subject curve or path (`.
 | `.ref-line` | `1 2` `--faint` | chart reference lines and event markers |
 | `.life` | `1 2` `--faint` | sequence lifelines |
 | `.ln-faint` | solid `--faint` | hatching, secondary outlines |
-| `.part` | solid `--ink`, 1.5px | object outlines in `schematic` and `panel` drawings only |
+| `.part` | solid `--ink`, 1.25px | object outlines in `schematic` and `panel` drawings only |
 
 Add `subj` to any of them to draw it in the accent. In ASCII, use `┄ ┆` for dashed boxes.
 
@@ -279,7 +279,7 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 ## schematic
 
 - SVG, viewBox at most 420 wide. Flat section or side view, no shading or fills. Say `not to scale` in the hint when it isn't.
-- Object outlines are `.part`: 1.5px `--ink`, so the object reads a step bolder than its notes. Annotations (leaders, dimension scales, dashed guides) stay 1px `--muted`.
+- Object outlines are `.part`: 1.25px `--ink`, so the object reads a step bolder than its notes. Annotations (leaders, dimension scales, dashed guides) stay 1px `--muted`.
 - Labels 11px caps `.lbl`: right-aligned at x 70 on the left (`text-anchor="end"`) or left-aligned from x 318 on the right, each with a `.leader` that has at most one elbow.
 - Dimensions: a `.dash` guide from the part to a `.leader` scale with ticks, values as 12px text.
 - The subject is one point or part: `.subj` stroke, `.solid.subj` dot, and its label in `subj`. 3 to 8 labels.
@@ -315,7 +315,7 @@ At 390 wide the figure is 350px, and no figure text may render under 9px. Pick o
 The spring reference drawn in the light palette. Use it once per page at most, for the one number the reader should turn.
 
 - `.fig.wide` with `data-interactive`. The head adds a `.fig-name` (`[ spring ]`) after the tag; the hint names the gestures, set by the script, and shows the static state without it.
-- `.panel` is a two-column grid: `.panel-code` (13px, faint line numbers, keys bold `--ink`, comment `.c` `--muted`, values `.val` in the accent) and a small schematic SVG on the right, at most 200 wide, outlines `.part` (1.5px `--ink`) and hatching `.ln-faint`. Under 480px the schematic drops under the code.
+- `.panel` is a two-column grid: `.panel-code` (13px, faint line numbers, keys bold `--ink`, comment `.c` `--muted`, values `.val` in the accent) and a small schematic SVG on the right, at most 200 wide, outlines `.part` (1.25px `--ink`) and hatching `.ln-faint`. Under 480px the schematic drops under the code.
 - `.plot` spans both columns: a stretched SVG with no text, HTML tick labels (`.y` with `--y`, `.x` with `--x` and `--tx` for the ends), a `.mark` label at the event and a `.legend`. All chart conventions apply.
 - `.fig-foot` under a dotted rule: the formula on the first line; ranges left in `--muted`; readouts right, with `data-out` spans the script fills.
 - Static first: every number, path and readout in the HTML is computed for the values shown. The script only redraws.

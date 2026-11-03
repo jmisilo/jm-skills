@@ -48,3 +48,10 @@ Behaviour runs: three fresh Opus agents used the skill on DNS, keyboard switch a
 - **Before/after judge (L6).** Two pages ran longer than their baselines. This added the length budget (900 to 1,400 words, 4 or 5 steps) and lowered the word WARN to 1,600. Box labels touched their edges, which led to the box padding rule and a box-edge check in step 8. Claims after a ref went untagged, which led to "a ref covers only the sentence it ends". The finish and limits were untagged too, so the tagging rule now covers them.
 
 Not verified: the Codex run (`codex exec '$jm-explain …'`). The user declined the sandboxed test run, so `agents/openai.yaml` is untested in Codex.
+
+## 2026-11-03 (final review and user approval)
+
+- Final designer review: blue words in prose read as links, and the dotted inferred underline made pages look half-linked. Now the accent lives in figures only (prose `mark.subj` is bold ink), and inferred claims carry a superscript `~`. No page used a chart, so step 4 now makes any continuously varying quantity a `chart` or `panel`.
+- Final engineer review: `cp` wasn't allowed. The user approved `Bash(cp *)`, and probe screenshots now go to `/tmp`, so the skill never deletes files.
+- User at the approval gate: drawings should be slightly bolder, but 1.5px was too bold. Drawing outlines (`.part`) are now 1.25px `--ink`, and annotations stay 1px.
+- `examples/` holds the keyboard-switch and card-payment pages the user approved.
