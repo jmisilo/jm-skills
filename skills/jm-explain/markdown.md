@@ -1,6 +1,6 @@
 # The --md mode
 
-Read this only when the request contains `--md`. The answer goes in the chat as markdown, and no file is written: no `explain/` folder, no HTML, no screenshots. Steps 1 to 3 of the run still apply in full; this file replaces steps 4 to 8.
+Read this only when the request contains `--md`. The answer goes in the chat as markdown, and no file is written: no `explain/` folder, no HTML, no screenshots. Steps 1 to 3 of the run still apply in full; this file replaces steps 4 to 10. Run the newcomer pass (step 6) and the depth pass (step 7) on the draft before sending it.
 
 ## Order
 
@@ -9,8 +9,8 @@ Keep the page's parts, in this order, as plain markdown:
 1. The prompt line as a blockquote: `> ` followed by the invocation exactly as the user typed it (`/jm-explain …` or `$jm-explain …`).
 2. The problem: a `#` heading, 2 to 4 short paragraphs, then the overview figure.
 3. `## Before you start`: a list of 2 to 6 terms, each `**term**: one or two sentences`.
-4. `## 01 <step title>` to `## 07 …`: per step, one paragraph and one figure.
-5. `## In one idea`: the recap as one idea, what transfers, the limits.
+4. `## 01 <step title>` to `## 08 …`: per step, 2 to 4 paragraphs (how the part works, why it is built that way, what breaks it) and one or two figures.
+5. `## In one idea`: the recap as one idea, what transfers, going deeper, the limits.
 6. `## Sources`: a numbered list; claims point to it as `[1]`. Inferred claims end with `(inferred)`.
 
 ## Figures

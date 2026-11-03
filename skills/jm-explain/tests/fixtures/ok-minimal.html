@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ok-minimal: how does a DNS lookup find an address?</title>
-<!-- A tiny page that passes every checker rule. Colours like #fff in this comment are never scanned. -->
+<!-- A short page (just over 1,500 prose words) that passes every checker rule. Colours like #fff in this comment are never scanned. -->
 <style>
 :root {
   --paper: #fafafa; --ink: #171717; --ink-2: #525252; --muted: #8f8f8f; --faint: #bdbdbd;
@@ -77,6 +77,8 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
     <h1>How a DNS lookup finds an address</h1>
     <p>Computers reach each other by number, people remember names. DNS turns a name like <code>example.com</code> into an address.</p>
     <p>No single server knows every name, so a resolver asks a chain of servers, each one closer to the answer.</p>
+    <p>The design is old and it still sits in front of almost every connection on the internet. A lookup usually takes a few tens of milliseconds the first time and well under a millisecond after that, because nearly every answer is cached somewhere along the way. When it is slow or wrong, everything that depends on a name feels broken, which is why it is worth knowing what the resolver actually does.</p>
+    <p>This page follows one lookup for <code>example.com</code> from a laptop with an empty cache, through the root and the <code>.com</code> servers, to the server that holds the record, and then shows what the resolver keeps afterwards.</p>
     <figure class="fig" data-kind="schematic">
       <div class="fig-head"><span class="fig-tag">FIG. 1</span><span class="fig-hint">overview</span></div>
       <svg role="img" aria-label="Client asks a resolver, the resolver asks the name servers" viewBox="0 0 430 100" width="430" height="100">
@@ -98,12 +100,18 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
     <dl class="terms">
       <dt>Resolver</dt><dd>The server that does the asking on your behalf.</dd>
       <dt>Zone</dt><dd>The part of the name space one server is responsible for.</dd>
+      <dt>Referral</dt><dd>An answer that does not hold the record but names the servers one level closer to it.</dd>
+      <dt>TTL</dt><dd>Time to live: how many seconds a resolver may keep an answer before it has to ask again.</dd>
     </dl>
   </section>
 
   <section data-part="mechanism" data-step="1">
     <header class="sec"><h2>The client asks once</h2><span class="idx">01</span></header>
     <p>The client sends one query to its resolver and waits.<sup class="ref"><a href="#s1">1</a></sup></p>
+    <p>The query is small. It is a single UDP datagram, usually well under 100 bytes, that names the domain, the record type it wants (an A record for an IPv4 address) and a random 16-bit ID. The client sets the recursion desired flag, which asks the resolver to do the whole walk and come back only with the final answer. A client that did the walk itself would need to know the root servers, follow referrals and handle every error, and a phone or a laptop has no reason to carry that logic.</p>
+    <p>The resolver is usually run by the network you are on: a home router forwards to the provider's resolver, an office runs its own, and some people point their machines at a public one. Whichever it is, the client trusts it completely. It cannot check the answer, so a resolver that lies, or one that has been fed a forged reply, sends the client to the wrong address without any sign that something went wrong. The random ID and a random source port are what make a forged reply hard to land, since an attacker has to guess both before the real answer arrives.</p>
+    <p>If no reply comes back, the client waits and asks again, typically after one to five seconds, and may try a second configured resolver. That retry is why a resolver that drops packets makes every new site feel as if it hangs for a second before it starts to load.</p>
+    <p>The operating system usually keeps a small cache of its own in front of the resolver, and browsers keep another, so a name you visited a minute ago may never leave the machine. That is fast, and it is also why a change you just made to a record can look as if it has not happened yet on the one machine you are testing from.</p>
     <figure class="fig" data-kind="ascii">
       <div class="fig-head"><span class="fig-tag">FIG. 2</span></div>
       <svg class="grid" role="img" aria-label="Client sends one query to the resolver" viewBox="0 0 218.4 50.4" width="218.4" height="50.4">
@@ -127,6 +135,9 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
   <section data-part="mechanism" data-step="2">
     <header class="sec"><h2>The root points onward</h2><span class="idx">02</span></header>
     <p>The resolver asks a root server, which answers with the servers for <code>.com</code>.</p>
+    <p>The resolver starts at the top because it has to start somewhere it can trust. It ships with a list of the root servers' addresses, called the root hints, and the root zone itself is small: it only lists which servers are responsible for each top-level domain such as <code>.com</code>, <code>.org</code> or <code>.uk</code>. The root server does not know where <code>example.com</code> is, and it does not try to find out. It answers with a referral, a list of the <code>.com</code> servers and, where it can, their addresses, so the resolver does not need a second lookup to reach them.</p>
+    <p>The resolver then asks a <code>.com</code> server the same question. That server holds the delegation for every name directly under <code>.com</code>, so it can say which servers are authoritative for <code>example.com</code>, but it holds none of the records inside that zone. Again the answer is a referral, one level further down. Each hop takes a round trip, often 10 to 40 ms, and a cold lookup can need three or four of them before it reaches the zone that has the answer.</p>
+    <p>The walk only works because every level keeps its delegations current. If the <code>.com</code> zone points at servers that no longer answer for the domain, the lookup fails even though the domain's own servers are healthy, which is a common way for a site to vanish after a careless move between hosting providers.</p>
     <figure class="fig" data-kind="tree">
       <div class="fig-head"><span class="fig-tag">FIG. 3</span></div>
       <svg class="grid" role="img" aria-label="Tree: root, then com, then example.com" viewBox="0 0 142.8 50.4" width="142.8" height="50.4">
@@ -145,6 +156,10 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
   <section data-part="mechanism" data-step="3">
     <header class="sec"><h2>The zone answers</h2><span class="idx">03</span></header>
     <p>The <code>example.com</code> server returns the address record.<sup class="ref"><a href="#s2">2</a></sup></p>
+    <p>The authoritative server for <code>example.com</code> is the first one in the chain that actually holds the record. It answers with the address and a TTL, the number of seconds the answer may be kept, and it sets the authoritative answer flag so the resolver knows this came from the source and not from someone's cache. If the name does not exist, it says so with an NXDOMAIN response, which is also an answer and is cached too.</p>
+    <p>The record type matters here. A client that asked for an A record gets an IPv4 address; one that asked for AAAA gets an IPv6 address, and modern clients usually ask for both at once. If the name is an alias, the server returns a CNAME pointing at another name, and the resolver has to look that name up as well, sometimes starting a whole new walk from the root.</p>
+    <p>The resolver passes the answer back to the client, which uses it to open a connection. From the client's side the whole exchange looked like one question and one answer, because the client never saw the referrals.</p>
+    <p>Most of the time the answer is a single address, but a busy site often returns several, and the order can change from one query to the next. Clients usually try the first and fall back to the others, so a list of addresses spreads the load across machines and keeps the site reachable when one of them is down. The same server can also answer differently depending on where the question came from, which is how a content network sends a reader in Paris to a machine in Paris and a reader in Tokyo to one in Tokyo.</p>
     <figure class="fig" data-kind="table">
       <div class="fig-head"><span class="fig-tag">FIG. 4</span></div>
       <svg role="img" aria-label="Answer record: example.com A 93.184.215.14, TTL 3600" viewBox="0 0 430 40" width="430" height="40">
@@ -160,6 +175,9 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
   <section data-part="mechanism" data-step="4">
     <header class="sec"><h2>The resolver caches it</h2><span class="idx">04</span></header>
     <p>The resolver keeps the answer for its TTL, so the next client gets it at once. <span class="inferred">Most resolvers honour the TTL as given.</span></p>
+    <p>Caching is what makes the system usable. Once the resolver has the record it keeps it for the TTL, so the next client that asks for <code>example.com</code> in that window gets the answer from memory in a millisecond or two, with no packets sent upstream. The resolver also keeps the referrals it learned on the way, so a later lookup for another <code>.com</code> name can skip the root and go straight to the <code>.com</code> servers.</p>
+    <p>The TTL is a trade between load and freshness. A long TTL, such as a day, means few queries reach the authoritative server, but a changed address takes up to a day to reach everyone. A short one, such as 60 seconds, lets an operator move traffic quickly, at the cost of far more lookups. Operators who plan a move usually lower the TTL a day ahead, make the change, and raise it again afterwards.</p>
+    <p>Caches also explain the most confusing DNS failures. Two people can see different answers for the same name at the same moment because their resolvers fetched it at different times, and clearing one cache does nothing about the copies held by browsers, operating systems and other resolvers along the way.</p>
     <figure class="fig" data-kind="timeline">
       <div class="fig-head"><span class="fig-tag">FIG. 5</span></div>
       <div class="tl" role="img" aria-label="Timeline: first lookup 0 to 120ms, cached lookup 0 to 2ms">
@@ -174,6 +192,9 @@ ol.sources { font-size: 13px; color: var(--ink-2); }
   <section data-part="finish">
     <header class="sec"><h2>What transfers</h2><span class="idx">05</span></header>
     <p>A lookup is a chain of referrals that ends in one record, and caching makes the chain rare.</p>
+    <p>The rest of DNS builds on the same idea. DNSSEC adds signatures so a resolver can check that an answer really came from the zone's owner, and encrypted transports such as DNS over HTTPS hide the questions from the network in between, but the walk from the root down through referrals to one authoritative answer stays the same.</p>
+    <p>When a lookup goes wrong, the useful question is which hop failed: the client reaching its resolver, the resolver reaching a delegation, the authoritative server holding the wrong record, or a cache still holding an old one. Each fails in its own way, and <code>dig +trace</code> walks the chain the same way the resolver does, so you can see where it stops.</p>
+    <p>None of this needs a central directory. Each operator answers only for its own zone and points onward for everything below it, which is why the system has grown from a few thousand names to hundreds of millions without changing its shape.</p>
   </section>
 
   <section data-part="sources">

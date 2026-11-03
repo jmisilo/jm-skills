@@ -2,6 +2,29 @@
 
 Why each part of this skill exists. Agents don't load this file.
 
+## 2026-11-03, depth and motion
+
+Observed failure: the user found the pages narrow and shallow ("explanations are quite narrow, and should be more in depth"). They want "good understanding without super specifics" for broad questions: GPUs, AI, cars, Stripe and Polar, dub.co, multi-channel messaging. Baselines with the old skill confirmed it. "how gpus work" came out at 1,396 words in 5 steps and followed a single frame; "how do link shorteners like dub.co work" came out at 1,066 words in 5 steps. In both, each step had one paragraph saying what happens, and nothing on why or on failure modes.
+
+Changes:
+- Scope: broad questions become a system tour (one step per major part); narrow ones follow one mechanism. Depth defaults to understanding: how, why and what breaks it, with no specs unless asked.
+- Each step has 2 to 4 paragraphs (how, why, what breaks), 140 words at most each, and 1 or 2 figures.
+- 5 to 8 steps and 2,000 to 4,000 words; the checker WARNs under 1,500 and over 4,500 and prints the word, step and figure counts.
+- New step 7, the depth pass. The finish gains a going-deeper paragraph.
+- New `motion` figure kind: it is reader-driven (prev, play, next), starts paused, and loops only after play is pressed. With JS off it shows a static frame plus the step list, and it handles reduced motion. A page has at most one interactive figure (panel or motion). The user chose a play button that may loop over steps-only. There are four checker rules and fixtures for it.
+- `ascii-figure.mjs`: subject markers take one column each, because the shortener baseline lined up boxes by eye and three figures broke. It also warns when a label touches a box wall.
+- Rules from the after-run reports:
+  - A sourced-arithmetic number is not inferred.
+  - A why that follows from facts already on the page needs no mark.
+  - Textbook definitions cite a reference work.
+  - The finish synthesis needs no refs.
+  - Sources run 10 to 25.
+  - `.fig-hint` is uppercased.
+  - A new gotcha covers zsh variable splitting, eval scope, blank off-screen screenshots and locale-redirected pricing pages.
+  - Sequence lane spacing is set for 2 to 5 lanes.
+  - `data-at` accepts lists (`1,6`).
+- Examples: the user chose "how gpus work" (hardware, with a motion figure) and "how payment platforms like stripe or polar.sh work" (a software system tour), replacing keyboard and card payment. Both were built by fresh agents from the new skill: 3,493 words with 8 steps and 10 figures, and 3,143 words with 8 steps and 9 figures. Both show 0 FAIL and 0 WARN, and the probe returned ok at 1280 and 390.
+
 ## 2026-11-03
 
 Initial version, built with `jm-write-skill` and `jm-complex-workflow`.

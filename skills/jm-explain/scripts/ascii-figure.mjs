@@ -3,7 +3,9 @@
 // Lines, corners, junctions and arrowheads become SVG paths, so they join in any font.
 // Usage: node ascii-figure.mjs --label "What the figure shows" < diagram.txt
 //        node ascii-figure.mjs --label "..." diagram.txt
-// Mark the subject with ⟦ ⟧: its text and lines render in the accent. Markers take no columns.
+// Mark the subject with ⟦ ⟧: its text and lines render in the accent. Each marker takes one column,
+// so a source lined up by eye renders lined up: the marker cell draws as a space, or as the line it
+// sits inside (──⟦──▸⟧ stays one unbroken line).
 import { readFileSync } from 'node:fs';
 
 const MAX_COLS = 56;
@@ -28,6 +30,16 @@ if (!label.trim()) {
 
 const src = readFileSync(file ?? 0, 'utf8').replace(/\t/g, '    ').replace(/\s+$/, '');
 
+// Connections per glyph: L R U D, and whether the line is dashed.
+const SOLID = {
+  '─': 'LR', '━': 'LR', '│': 'UD', '┃': 'UD',
+  '┌': 'RD', '╭': 'RD', '┐': 'LD', '╮': 'LD', '└': 'RU', '╰': 'RU', '┘': 'LU', '╯': 'LU',
+  '├': 'UDR', '┤': 'UDL', '┬': 'LRD', '┴': 'LRU', '┼': 'LRUD',
+};
+const DASHED = { '┄': 'LR', '┈': 'LR', '╌': 'LR', '┆': 'UD', '┊': 'UD', '╎': 'UD' };
+const ARROW = { '▸': 'R', '▶': 'R', '→': 'R', '◂': 'L', '◀': 'L', '←': 'L', '▴': 'U', '▲': 'U', '↑': 'U', '▾': 'D', '▼': 'D', '↓': 'D' };
+const MARK = '\u0000';
+
 // Parse ⟦ ⟧ markers into a per-cell subject flag.
 const grid = [];
 const subj = [];
@@ -36,8 +48,7 @@ for (const line of src.split('\n')) {
   const row = [];
   const flags = [];
   for (const ch of line) {
-    if (ch === '⟦') { inSubj = true; continue; }
-    if (ch === '⟧') { inSubj = false; continue; }
+    if (ch === '⟦' || ch === '⟧') { row.push(MARK); flags.push(true); inSubj = ch === '⟦'; continue; }
     row.push(ch);
     flags.push(inSubj);
   }
@@ -49,6 +60,20 @@ if (inSubj) {
   process.exit(1);
 }
 
+// A marker cell inside a horizontal line continues that line; anywhere else it is a space.
+for (const row of grid) {
+  row.forEach((ch, c) => {
+    if (ch !== MARK) return;
+    let l = c - 1; while (row[l] === MARK) l--;
+    let r = c + 1; while (row[r] === MARK) r++;
+    const left = row[l], right = row[r];
+    const conn = (g) => SOLID[g] ?? DASHED[g] ?? '';
+    const joinsL = conn(left).includes('R') || ARROW[left] === 'L';
+    const joinsR = conn(right).includes('L') || ARROW[right] === 'R';
+    row[c] = joinsL && joinsR ? (left in DASHED || right in DASHED ? '┄' : '─') : ' ';
+  });
+}
+
 const rows = grid.length;
 const cols = Math.max(...grid.map((r) => r.length));
 const wide = grid.map((r, i) => [i + 1, r.length]).filter(([, n]) => n > MAX_COLS);
@@ -57,14 +82,6 @@ if (wide.length) {
   process.exit(1);
 }
 
-// Connections per glyph: L R U D, and whether the line is dashed.
-const SOLID = {
-  '─': 'LR', '━': 'LR', '│': 'UD', '┃': 'UD',
-  '┌': 'RD', '╭': 'RD', '┐': 'LD', '╮': 'LD', '└': 'RU', '╰': 'RU', '┘': 'LU', '╯': 'LU',
-  '├': 'UDR', '┤': 'UDL', '┬': 'LRD', '┴': 'LRU', '┼': 'LRUD',
-};
-const DASHED = { '┄': 'LR', '┈': 'LR', '╌': 'LR', '┆': 'UD', '┊': 'UD', '╎': 'UD' };
-const ARROW = { '▸': 'R', '▶': 'R', '→': 'R', '◂': 'L', '◀': 'L', '←': 'L', '▴': 'U', '▲': 'U', '↑': 'U', '▾': 'D', '▼': 'D', '↓': 'D' };
 const at = (r, c) => (grid[r] && grid[r][c]) || ' ';
 const isDashed = (ch) => ch in DASHED;
 
@@ -123,6 +140,13 @@ for (let r = 0; r < rows; r++) {
     run.s += ch;
   }
   flush();
+}
+
+// A label touching a box wall reads as cramped and can collide at small sizes: warn, keep going.
+const isWall = (g) => (SOLID[g] ?? DASHED[g] ?? '').includes('U');
+const touching = texts.filter((t) => isWall(at(t.r, t.c - 1)) || isWall(at(t.r, t.c + [...t.s].length)));
+for (const t of touching) {
+  console.error(`ascii-figure: warning: line ${t.r + 1}, "${t.s}" touches a box wall; leave at least one space on each side.`);
 }
 
 // Merge touching collinear pieces with the same style.

@@ -32,7 +32,7 @@ const CASES = {
   "broken-structure.html": {
     fail: ["part-missing", "part-order", "part-duplicate", "part-unknown", "prompt-line", "problem-h1", "problem-paras",
       "problem-figure", "primer-terms", "mechanism-figure", "mechanism-step"],
-    warn: ["step-count"],
+    warn: ["step-count", "word-count"],
   },
   "broken-figures.html": {
     gallery: true,
@@ -40,8 +40,13 @@ const CASES = {
       "fig-interactive", "ascii-width"],
     warn: ["svg-size", "ascii-pre"],
   },
-  "broken-refs.html": { fail: ["ref-unresolved", "sources-count"], warn: [] },
+  "broken-refs.html": { fail: ["ref-unresolved", "sources-count"], warn: ["word-count"] },
   "broken-external.html": { gallery: true, fail: ["external-load"], warn: ["external-link"] },
+  "ok-motion.html": { gallery: true, fail: [], warn: [] },
+  "broken-motion-steps.html": { gallery: true, fail: ["motion-steps"], warn: [] },
+  "broken-motion-at.html": { gallery: true, fail: ["motion-at"], warn: [] },
+  "broken-motion-path.html": { gallery: true, fail: ["motion-path"], warn: [] },
+  "broken-motion-script.html": { gallery: true, fail: ["motion-script"], warn: [] },
 };
 
 let bad = 0;
