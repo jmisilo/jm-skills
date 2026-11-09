@@ -5,13 +5,13 @@
     "name": "Jakub Misiło"
   },
   "metadata": {
-    "description": "JM's agent skills: writing skills, planning complex work, verification loops, coding style and explainer pages.",
+    "description": "JM's agent skills: writing skills, planning complex work, verification loops, coding style, explainer pages and subagent orchestration.",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "jm-skills",
-      "description": "All JM skills: jm-write-skill, jm-complex-workflow, jm-compose-loop, jm-coding-styleguide and jm-explain.",
+      "description": "All JM skills: jm-write-skill, jm-complex-workflow, jm-compose-loop, jm-coding-styleguide, jm-explain and jm-use-subagents.",
       "source": "./",
       "strict": false,
       "skills": [
@@ -19,7 +19,8 @@
         "./skills/jm-complex-workflow",
         "./skills/jm-compose-loop",
         "./skills/jm-coding-styleguide",
-        "./skills/jm-explain"
+        "./skills/jm-explain",
+        "./skills/jm-use-subagents"
       ]
     }
   ]
