@@ -9,6 +9,7 @@ Agent skills for Claude Code, Codex and other agents that read the Agent Skills 
 | [jm-compose-loop](skills/jm-compose-loop/SKILL.md) | agent or `/jm-compose-loop` | Choosing the checks that prove work is done, as a Loop table for a plan |
 | [jm-coding-styleguide](skills/jm-coding-styleguide/SKILL.md) | agent or `/jm-coding-styleguide` | TypeScript, React and Next.js conventions: control flow, `withX` wrappers, service classes, monorepo layout |
 | [jm-explain](skills/jm-explain/SKILL.md) | `/jm-explain <topic>` or `$jm-explain <topic>` only | How something is built (software, system, hardware, process) as one mono-paper HTML page with figures; `--md` answers in chat |
+| [jm-use-subagents](skills/jm-use-subagents/SKILL.md) | `/jm-use-subagents <model> [version] [effort]` only | Turns the session into orchestrator mode: research, implementation, testing, review, etc. go to subagents on the model and effort you name |
 
 `jm-complex-workflow` loads `jm-compose-loop` while planning, so install both.
 
@@ -24,7 +25,7 @@ From a local clone, pass its path instead of `jmisilo/jm-skills`.
 
 ### As a Claude Code plugin
 
-The repo is also a plugin marketplace (`.claude-plugin/marketplace.json`) with one plugin, `jm-skills`, that bundles all five skills. Claude Code keeps it in sync with the repo:
+The repo is also a plugin marketplace (`.claude-plugin/marketplace.json`) with one plugin, `jm-skills`, that bundles all six skills. Claude Code keeps it in sync with the repo:
 
 ```bash
 /plugin install jm-skills --marketplace jmisilo/jm-skills   # Claude Code 2.1.275+
